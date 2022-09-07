@@ -2,9 +2,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#define true 1
+#define false 0
+
 enum CardinalPoint {North, South, East, West}; //North = 0, South = 1, East = 2, West = 3
-enum DoorState {Closed, Open}; //Open = 0, Closed = 1
-enum RoomType {Normal, Treasure, Trap, Start, Goal, Nothing}; //Normal = 0, Treasure = 1, Trap = 2, Start = 3, Goal = 4
+enum DoorState {Closed, Open}; //Open = 1, Closed = 0
+enum RoomType {Normal, Treasure, Trap, Start, Goal, Nothing}; //Normal = 0, Treasure = 1, Trap = 2, Start = 3, Goal = 4, Nothing = 5
 
 struct door
 {
@@ -22,14 +25,15 @@ struct room
     int discovered;
     int occupied;
     
-    int treasure; //0=No treasure, 1=Has treasure
-    int monster; //0=No monster, 1=Has monster
+    int treasure;
+    int monster;
 };
 
 //---Variables gloables---
 
 short N;
 struct room **game_map;
+struct room *game_rooms;
 
 //------------------------
 
@@ -37,6 +41,7 @@ struct room **game_map;
     Retorna el id de la habitacion en la direccion cardinal ingresada, de la habitacion ingresada en currID
     Retorna -1 si no hay habitacion en esa direccion
 */
+
 int getNeighbour(int currID, enum CardinalPoint direction){
     switch(direction){
         case North:
@@ -128,15 +133,48 @@ void getRoomDetailsByID(int id){
     }
 }
 
+
+void printArray(int *array, int size){
+    for(int i = 0; i < size; i++){
+        printf("%d ", array[i]);
+    }
+    printf("\n");
+}
+
+int isGoal(int id){
+    int i = (id-1) / N;
+    int j = (id-1) % N;
+    return game_map[i][j].type == Goal;
+}
+
+//Check if element is in array
+int isInArray(int *array, int size, int element){
+    for(int i = 0; i < size; i++){
+        if(array[i] == element){
+            return true;
+        }
+    }
+    return false;
+}
+
 int main(){
+
     srand(time(NULL));
-    //Crear matrices
+
+    printf("\n");
     printf("Ingrese N: ");
     scanf("%d", &N);
     printf("\n");
+
+    if(N < 2){
+        printf("N debe ser mayor o igual a 2.\n");
+        return 0;
+    }
     
     int total = N*N;
+
     game_map = (int **)malloc(N * sizeof(struct room *));
+    game_rooms = (int *)malloc(N * sizeof(int));
 
     int startRoomID = (rand() % total) + 1;
     int goalRoomID = (rand() % total) + 1;
@@ -145,7 +183,9 @@ int main(){
         goalRoomID = (rand() % total) + 1;
     }
 
-    enum RoomType tipos [3] = {Normal, Treasure, Trap};
+    int idList[total];
+
+    int id;
 
     for (int i = 0; i < N; i++)
     {
@@ -154,44 +194,119 @@ int main(){
         {
             struct room *room = (struct room *) malloc(sizeof(struct room));
             
-            room->id = (j+1)+N*i;
+            //Calcula un id desde 1,2,3..N*N, con la i y la j
+            id = (j+1)+N*i;
+
+            room->id = id;
+            idList[id-1] = id;
 
             int probability = rand() % 10;
-            if(probability < 3){//30% de chance de ser una habitacion normal
+
+            if(probability < 3){// 30% de probabilidad de ser una habitacion j)+N*inormal
                 room->type = Normal;
-            }else if (probability > 6){//30% de chance de ser una habitacion con tesoro
+            }else if (probability > 6){// 30% de probabilidad de ser una habitacion con tesoro
                 room->type = Treasure;
-            }else{//40% de chance de ser una habitacion con trampa
+            }else{// 40% de probabilidad de ser una habitacion con trampa
                 room->type = Trap;
             }
+
             room->type = room->id==startRoomID? Start : room->id==goalRoomID? Goal : room->type;
             createDoors(room->doors);
             room->openDoorsLeft = 3;
-            room->discovered = 0;
-            room->occupied = room->type==Start? 1 : 0;
-            room->treasure = 0;
-            room->monster = 0;
+            room->discovered = false;
+            room->occupied = room->type==Start? true : false;
+            room->treasure = false;
+            room->monster = false;
 
-            //gameRooms[(j)+N*i] = *room;
+            game_rooms[id-1] = *room;
             game_map[i][j] = *room;
         }
+    }
+
+    //getMapDetails();
+    //printArray(idList, total);
+
+    int blockedIds[total];
+    int blockedIdsSize = 0;
+
+    int touredIds[total];
+    int touredIdsSize = 0;
+
+    int possibleDestinations[4];
+    int possibleDestinationsSize = 0;
+
+    touredIds[touredIdsSize++] = startRoomID;
+
+    int currentNeighbour;
+
+    int currentRoom;
+
+    int chosenNextRoom;
+
+    printf("\nCuarto incial: %d\n", startRoomID);
+    printf("Cuarto final: %d\n", goalRoomID);
+    
+    while(touredIds[touredIdsSize-1]!=goalRoomID){
+        currentRoom = touredIds[touredIdsSize-1];
+
+        //printf("\n\nCurrent room: %d\n", currentRoom);
+
+        for(int i = 0; i < 4; i++)
+        {
+            currentNeighbour = getNeighbour(currentRoom, i);
+
+            if(!isInArray(touredIds, touredIdsSize, currentNeighbour) && !isInArray(blockedIds, blockedIdsSize, currentNeighbour)){
+                if(currentNeighbour != -1){
+                    if(currentRoom==startRoomID){
+                        if(currentNeighbour!=goalRoomID){
+                            possibleDestinations[possibleDestinationsSize++] = currentNeighbour;
+                        }
+                    }else{
+                        possibleDestinations[possibleDestinationsSize++] = currentNeighbour;
+                    }
+                }
+            } 
+        }
+
+        //printArray(possibleDestinations, possibleDestinationsSize);
+        //printf("Possible destinations size: %d\n", possibleDestinationsSize);
+
+        if(possibleDestinationsSize == 0){
+            //printf("Blocked room: %d\n", currentRoom);
+            blockedIds[blockedIdsSize++] = currentRoom;
+            touredIdsSize--;
+            possibleDestinationsSize = 0;
+            //printArray(touredIds, touredIdsSize);
+        }else{
+            chosenNextRoom = possibleDestinations[rand() % possibleDestinationsSize];
+            //printf("Cuarto elegido: %d\n", chosenNextRoom);
+            touredIds[touredIdsSize++] = chosenNextRoom;
+            possibleDestinationsSize = 0;
+        }
         
+
+
     }
 
-    /*
-    for(int i = 0; i < N*N; i++){
-        getRoomDetails(&gameRooms[i]);
-    }
-    */
+    printf("Camino seguro: ");
+    printArray(touredIds, touredIdsSize);
 
-    getMapDetails();
-    //getRoomDetailsByID(1);
+    
 
-    /*
-    for(int i = 0; i < N; i++){
-        free(game_map[i]);
-    }
-    */
+    
+
+
     
     return 0;
+
 }
+/*
+for(int i = 0; i < N*N; i++){
+    getRoomDetails(&gameRooms[i]);
+}
+*/
+/*
+for(int i = 0; i < N; i++){
+    free(game_map[i]);
+}
+*/
