@@ -147,7 +147,6 @@ int isGoal(int id){
     return game_map[i][j].type == Goal;
 }
 
-//Check if element is in array
 int isInArray(int *array, int size, int element){
     for(int i = 0; i < size; i++){
         if(array[i] == element){
@@ -155,6 +154,17 @@ int isInArray(int *array, int size, int element){
         }
     }
     return false;
+}
+
+void connectRooms(int * roomsArray, int * directionsArray, int size){
+    int currentRoom = 0;
+    int nextRoom = 0;
+    for(int i = 0; i < size-1; i++){
+        currentRoom = roomsArray[i];
+        for(int j = 0; j < 4; j++){
+            ;
+        }
+    }
 }
 
 int main(){
@@ -176,10 +186,10 @@ int main(){
     game_map = (int **)malloc(N * sizeof(struct room *));
     game_rooms = (int *)malloc(N * sizeof(int));
 
-    int startRoomID = (rand() % total) + 1;
-    int goalRoomID = (rand() % total) + 1;
+    int startRoomID = (rand() % total) + 1; //Se obtiene una habitacion aleatoria para ser la de inicio
+    int goalRoomID = (rand() % total) + 1; //Se obtiene una habitacion aleatoria para ser la meta
 
-    while(startRoomID == goalRoomID){
+    while(startRoomID == goalRoomID){ //La habitacion de inicio no puede ser la misma que la meta
         goalRoomID = (rand() % total) + 1;
     }
 
@@ -198,11 +208,11 @@ int main(){
             id = (j+1)+N*i;
 
             room->id = id;
-            idList[id-1] = id;
+            idList[id-1] = id; //Guarda el id en la lista de ids
 
-            int probability = rand() % 10;
+            int probability = rand() % 10; //Genera un numero aleatorio entre 0 y 9
 
-            if(probability < 3){// 30% de probabilidad de ser una habitacion j)+N*inormal
+            if(probability < 3){// 30% de probabilidad de ser una habitacion normal
                 room->type = Normal;
             }else if (probability > 6){// 30% de probabilidad de ser una habitacion con tesoro
                 room->type = Treasure;
@@ -212,14 +222,14 @@ int main(){
 
             room->type = room->id==startRoomID? Start : room->id==goalRoomID? Goal : room->type;
             createDoors(room->doors);
-            room->openDoorsLeft = 3;
+            room->openDoorsLeft = 3; //Cada habitacion puede tener hasta 3 puertas abiertas
             room->discovered = false;
-            room->occupied = room->type==Start? true : false;
+            room->occupied = room->type==Start? true : false; //La habitacion de inicio siempre esta ocupada, las demas no
             room->treasure = false;
             room->monster = false;
 
-            game_rooms[id-1] = *room;
-            game_map[i][j] = *room;
+            game_rooms[id-1] = *room; //Guarda la habitacion en la lista de habitaciones
+            game_map[i][j] = *room; //Guarda la habitacion en la matriz (mapa del juego)
         }
     }
 
@@ -232,71 +242,67 @@ int main(){
     int touredIds[total];
     int touredIdsSize = 0;
 
+    int connections[total];
+    int connectionsSize = 0;
+
+    int possibleConnections[total];
+    int possibleConnectionsSize = 0;
+
     int possibleDestinations[4];
     int possibleDestinationsSize = 0;
 
     touredIds[touredIdsSize++] = startRoomID;
 
     int currentNeighbour;
-
     int currentRoom;
-
     int chosenNextRoom;
 
-    printf("\nCuarto incial: %d\n", startRoomID);
+    printf("Cuarto incial: %d\n", startRoomID);
     printf("Cuarto final: %d\n", goalRoomID);
     
-    while(touredIds[touredIdsSize-1]!=goalRoomID){
+    while(touredIds[touredIdsSize-1]!=goalRoomID){//Mientras no se haya llegado a la habitacion final
         currentRoom = touredIds[touredIdsSize-1];
 
-        //printf("\n\nCurrent room: %d\n", currentRoom);
-
-        for(int i = 0; i < 4; i++)
+        for(int i = 0; i < 4; i++) //Se recorren las 4 posibles direcciones en las que se puede ir
         {
-            currentNeighbour = getNeighbour(currentRoom, i);
+            currentNeighbour = getNeighbour(currentRoom, i); //Se obtiene el vecino en la direccion i
 
-            if(!isInArray(touredIds, touredIdsSize, currentNeighbour) && !isInArray(blockedIds, blockedIdsSize, currentNeighbour)){
-                if(currentNeighbour != -1){
-                    if(currentRoom==startRoomID){
-                        if(currentNeighbour!=goalRoomID){
-                            possibleDestinations[possibleDestinationsSize++] = currentNeighbour;
+            if(!isInArray(touredIds, touredIdsSize, currentNeighbour) && !isInArray(blockedIds, blockedIdsSize, currentNeighbour)){ //Si el vecino no esta en los ids visitados y no esta en los ids bloqueados
+                if(currentNeighbour != -1){ //Si el vecino existe
+                    if(currentRoom==startRoomID){  //Si el cuarto actual es el inicial
+                        if(currentNeighbour!=goalRoomID){ //Si el vecino no es el cuarto final
+                            possibleDestinations[possibleDestinationsSize++] = currentNeighbour; //Se agrega el vecino a los posibles destinos
+                            possibleConnections[possibleConnectionsSize++] = i; //Se agrega la direccion en la que se puede ir al vecino a las conexiones
                         }
                     }else{
-                        possibleDestinations[possibleDestinationsSize++] = currentNeighbour;
+                        possibleDestinations[possibleDestinationsSize++] = currentNeighbour; //Se agrega el vecino a los posibles destinos
+                        possibleConnections[possibleConnectionsSize++] = i; //Se agrega la direccion en la que se puede ir al vecino a las conexiones
                     }
                 }
             } 
         }
 
-        //printArray(possibleDestinations, possibleDestinationsSize);
-        //printf("Possible destinations size: %d\n", possibleDestinationsSize);
-
-        if(possibleDestinationsSize == 0){
-            //printf("Blocked room: %d\n", currentRoom);
-            blockedIds[blockedIdsSize++] = currentRoom;
-            touredIdsSize--;
-            possibleDestinationsSize = 0;
-            //printArray(touredIds, touredIdsSize);
+        if(possibleDestinationsSize == 0){ //Si no hay posibles destinos, se bloquea el cuarto actual
+            blockedIds[blockedIdsSize++] = currentRoom; //Agrega el cuarto a la lista de cuartos bloqueados, ya que no tiene vecinos disponibles
+            touredIdsSize--;//Se retrocede un cuarto en la lista de cuartos visitados
+            connectionsSize--;
+            possibleConnectionsSize=0; //Se reinician las conexiones
+            possibleDestinationsSize = 0;//Se reinicia la lista de posibles destinos
         }else{
-            chosenNextRoom = possibleDestinations[rand() % possibleDestinationsSize];
-            //printf("Cuarto elegido: %d\n", chosenNextRoom);
-            touredIds[touredIdsSize++] = chosenNextRoom;
-            possibleDestinationsSize = 0;
+            int random = rand() % possibleDestinationsSize;
+            chosenNextRoom = possibleDestinations[random]; //Todos los posibles destinos tienen la misma probabilidad de ser elegidos
+            touredIds[touredIdsSize++] = chosenNextRoom; //Se agrega el cuarto elegido a la lista de cuartos visitados
+            connections[connectionsSize++] = possibleConnections[random]; //Se agrega la direccion en la que se puede ir al cuarto elegido a las conexiones
+            possibleDestinationsSize = 0; //Se reinicia la lista de posibles destinos
+            possibleConnectionsSize = 0; //Se reinician las conexiones
         }
         
-
-
     }
 
     printf("Camino seguro: ");
     printArray(touredIds, touredIdsSize);
+    printArray(connections, connectionsSize);
 
-    
-
-    
-
-
-    
     return 0;
 
 }
