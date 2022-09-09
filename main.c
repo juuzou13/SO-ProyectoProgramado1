@@ -546,7 +546,7 @@ int main()
     printf("Cuarto incial: %d\n", startRoomID);
     printf("Cuarto final: %d\n", goalRoomID);
 
-    int counter = N;
+    int counter = N-1;
 
     while (counter > 0 /*touredIds[touredIdsSize - 1] != goalRoomID*/)
     { // Mientras no se haya llegado a la habitacion final
@@ -640,16 +640,16 @@ int main()
     struct room *currentRoom;
     struct room *roomToConnect;
 
-    // while(touredIdsSize<N*N){
-    // getUnvisitedeighbors(touredIds, touredIdsSize, &univisted, &univistedSize, &unvisitedDirections, &unvisitedDirectionsSize, goalRoomID);
+    while(touredIdsSize<N*N){
+    getUnvisitedeighbors(touredIds, touredIdsSize, &univisted, &univistedSize, &unvisitedDirections, &unvisitedDirectionsSize, goalRoomID);
 
-    // printf("Unvisited size: %d\n", univistedSize);
-    //  printf("Unvisited ids: ");
-    // printArray(univisted, univistedSize);
+    printf("Unvisited size: %d\n", univistedSize);
+     printf("Unvisited ids: ");
+    printArray(univisted, univistedSize);
 
-    // printf("UnvisitedD size: %d\n", unvisitedDirectionsSize);
-    //  printf("UnvisitedD ids: ");
-    // printArray(unvisitedDirections, unvisitedDirectionsSize);
+    printf("UnvisitedD size: %d\n", unvisitedDirectionsSize);
+    printf("UnvisitedD ids: ");
+    printArray(unvisitedDirections, unvisitedDirectionsSize);
 
     int oppositeTable[4] = {1, 0, 3, 2};
 
@@ -657,7 +657,7 @@ int main()
     int connectedRoomID;
     int directionToConnect;
     int oppositeDirection;
-    /*
+    
     while (univistedSize != 0)
     {
         int random = rand() % univistedSize;
@@ -805,7 +805,12 @@ int main()
         // printf("C\n");
 
         // printf("Cuarto actual: %d\n", currRoom->id);
-        possibleDoorsSize -= rand() % 2;
+        int chance = rand() % 10;
+
+        if(chance < 7){
+            possibleDoorsSize -= 1;
+        }
+
         for (int j = 0; j < possibleDoorsSize; j++)
         {
             // printf("Puerta posible %d\n", possibleDoors[j]);
