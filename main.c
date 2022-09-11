@@ -521,9 +521,17 @@ int main()
 {
 
     srand(time(NULL));
-    int eleccion = 0;
 
-    while(eleccion < 1 || eleccion > 3){
+    int eleccion = 0;
+    int input_valid = 0;
+    char input[50];
+
+    while(!input_valid)
+    {
+        printf("\n");
+        printf("----------------------------------");
+        printf("\n");
+        printf("\n");
         printf("Escoja Dificultad");
         printf("\n\n");
         printf("1. Facil");
@@ -531,29 +539,56 @@ int main()
         printf("2. Medio");
         printf("\n");
         printf("3. Dificil");
-        printf("\n\n");
+        printf("\n");
+
+        printf("\n");
+        printf("----------------------------------");
+        printf("\n");
+
+        printf("\n");
         printf("Eleccion: ");
-        
+        scanf("%s", &input);
 
-        if(scanf("%d", &eleccion) != 1 || eleccion < 1 || 3 < eleccion){
-            printf("\nError: Ingrese un numero entre 1 y 3\n\n");
-            eleccion = 0;
-        }else{
-            switch(eleccion){
-                case 1:
-                    N = 10;
-                    break;
-                case 2:
-                    N = 20;
-                    break;
-                case 3:
-                    N = 30;
-                    break;
+        printf("\n");
+        printf("----------------------------------");
+        printf("\n");
+
+        //printf("Input %s\n", input);
+
+        input_valid = atoi(input);
+
+
+        if(input_valid && (atoi(input)==atof(input))){
+            eleccion = atoi(input);
+
+            printf("eleccion: %d\n", eleccion);
+
+            if(eleccion >= 1 && 3 >= eleccion){
+                break;
             }
+            
         }
+        printf(RED "\nError: Ingrese una dificultad valida.\n" DEFAULT);
+        input_valid = 0;
         
-
+        
     }
+
+
+    switch(eleccion){
+        case 1:
+            N = 10;
+            break;
+        case 2:
+            N = 20;
+            break;
+        case 3:
+            N = 30;
+            break;
+    }
+
+    
+
     
 
     if (N < 2)
@@ -685,7 +720,7 @@ int main()
 
     connectRooms(touredIds, connections, touredIdsSize);
 
-    /*
+    
     int possibleDoors[4];
     int possibleDoorsSize = 0;
 
@@ -726,12 +761,14 @@ int main()
             }
         }
 
+        /*
         int chance = rand() % 10;
 
         if (chance < 7)
         {
             possibleDoorsSize -= 1;
         }
+        */
 
 
         for (int j = 0; j < possibleDoorsSize; j++)
@@ -739,7 +776,7 @@ int main()
             neighbourID = getNeighbour(currRoom->id, possibleDoors[j]);
             openDoor(currRoom->id, possibleDoors[j]);
             openDoor(neighbourID, oppositeTable[possibleDoors[j]]);
-                    printf("Puerta abierta entre %d y %d\n", currRoom->id, neighbourID);
+            printf("Puerta abierta entre %d y %d\n", currRoom->id, neighbourID);
 
             
         }
@@ -748,7 +785,7 @@ int main()
         possibleDoorsSize = 0;
 
     }
-    */
+    
 
     drawTemporalMap();
 
