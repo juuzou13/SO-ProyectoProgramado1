@@ -217,6 +217,15 @@ void printArray(int *array, int size)
     printf("\n");
 }
 
+void printArrayFrom(int *array, int index, int size)
+{
+    for (int i = index; i < size; i++)
+    {
+        printf("%d ", array[i]);
+    }
+    printf("\n");
+}
+
 int isGoal(int id)
 {
     int i = (id - 1) / N;
@@ -805,6 +814,8 @@ int main()
 
     int tries = unvisitedDirectionsSize;
 
+    int actualDeadEnds = 0;
+
     while (0 < deadEnds || caminoSize < N)
     {
         int random = rand() % univistedSize;
@@ -831,6 +842,7 @@ int main()
             openDoor(connectedRoomID, directionToConnect);
             deadEnds--;
             printf(GREEN "Se conecto %d con %d\n" DEFAULT, connectedRoomID, roomToConnectId);
+            actualDeadEnds++;
         }
         else
         {
@@ -849,11 +861,14 @@ int main()
     drawTemporalMap(); // Con este pueden guiarse para ver como quedo el mapa y compararlo en SDL
 
 
-    printf("Camino seguro: ");
-    printf("Camino Size: %d\n", caminoSize);
-    printArray(camino, caminoSize);
+    printf("Camino seguro: \n");
+    printf("Camino seguro size: %d\n", caminoSize-actualDeadEnds);
+    printArray(camino, caminoSize-actualDeadEnds);
+    printf("DeadEnds: %d\n", actualDeadEnds);
+    printArrayFrom(camino, caminoSize-actualDeadEnds, caminoSize);
 
-    printf("Dead Ends: %d\n", deadEnds);
+    printf("Total Rooms: %d\n", caminoSize);
+
     printf("Total Rooms: %d\n", roomCount);
 
     return 0;
