@@ -13,6 +13,10 @@
 #define CYAN "\x1b[36m"
 #define DEFAULT "\x1b[0m"
 
+#define EASY 10
+#define MEDIUM 20
+#define HARD 30
+
 enum CardinalPoint
 {
     North,
@@ -52,6 +56,7 @@ struct room
     int occupied;
 
     int treasure;
+    int trap;
     int monster;
 };
 
@@ -89,6 +94,25 @@ void createDoors(struct door doors[4])
     {
         doors[i].cardinal = i;
         doors[i].state = Closed;
+    }
+}
+
+char *getCardinalName(int cardinal)
+{
+    switch (cardinal)
+    {
+    case 0:
+        return "Norte";
+        break;
+    case 1:
+        return "Sur";
+        break;
+    case 2:
+        return "Este";
+        break;
+    case 3:
+        return "Oeste";
+        break;
     }
 }
 
@@ -131,7 +155,7 @@ void getRoomDetails(struct room *room)
 
     for (int k = 0; k < 4; k++)
     {
-        printf("  Door %d) Cardinal: %d, State: %d\n", k + 1, room->doors[k].cardinal, room->doors[k].state);
+        printf("  Door %d) Cardinal: %s, State: %d\n", k + 1, getCardinalName(room->doors[k].cardinal), room->doors[k].state);
     }
 
     printf("Room open doors left: %d\n", room->openDoorsLeft);
@@ -212,13 +236,14 @@ int isInArray(int *array, int size, int element)
     return false;
 }
 
+// Dibuja el mapa con ASCII mostrando paredes y puertas abiertas
 void drawTemporalMap()
 {
     printf("\n");
     char openDoors[5] = {' ', ' ', ' ', ' ', '\0'};
     struct room *room;
 
-    char * roomColor;
+    char *roomColor;
 
     for (int i = 0; i < N; i++)
     {
@@ -294,7 +319,6 @@ void drawTemporalMap()
             {
                 printf("%s| " DEFAULT "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
             }
-            
 
             for (int k = 0; k < 4; k++)
             {
@@ -322,24 +346,7 @@ int getMaxNeighbours(int id)
     return 3;
 }
 
-char * getCardinalName(int cardinal)
-{
-    switch (cardinal)
-    {
-    case 0:
-        return "Norte";
-        break;
-    case 1:
-        return "Sur";
-        break;
-    case 2:
-        return "Este";
-        break;
-    case 3:
-        return "Oeste";
-        break;
-    }
-}
+
 
 void connectRooms(int *roomsArray, int *directionsArray, int size)
 {
@@ -347,8 +354,8 @@ void connectRooms(int *roomsArray, int *directionsArray, int size)
     int nextRoom = 0;
     struct room *currentRoomPtr;
     // Print roomsArray
-    //printf("Rooms array: ");
-    //printArray(roomsArray, size);
+    // printf("Rooms array: ");
+    // printArray(roomsArray, size);
 
     int oppositeDoor = -1;
 
@@ -361,11 +368,9 @@ void connectRooms(int *roomsArray, int *directionsArray, int size)
         if (oppositeDoor != -1)
         {
             openDoor(currentRoomId, oppositeDoor);
-            
         }
         oppositeDoor = oppositeTable[directionsArray[i]];
         printf(GREEN "Abriendo puerta %s de la habitacion %d\n" DEFAULT, getCardinalName(directionsArray[i]), currentRoomId);
-
     }
 
     currentRoomPtr = getRoomPointerByID(roomsArray[size - 1]);
@@ -434,7 +439,7 @@ int closeDoor(int roomID, int doorDirection)
     room->doors[doorDirection].state = Closed;
     room->openDoorsLeft = room->openDoorsLeft + 1;
 
-    //printf("Door opened in room %d, direction %d\n");
+    // printf("Door opened in room %d, direction %d\n");
 
     return true;
 }
@@ -470,7 +475,8 @@ int getRandomRoomType()
     }
 }
 
-void createMap(int startRoomID, int total){
+void createMap(int startRoomID, int total)
+{
     int idList[total];
     int id;
 
@@ -496,10 +502,12 @@ void createMap(int startRoomID, int total){
             else if (probability > 6)
             { // 30% de probabilidad de ser una habitacion con tesoro
                 room->type = Treasure;
+                room->treasure = 1;
             }
             else
             { // 40% de probabilidad de ser una habitacion con trampa
                 room->type = Trap;
+                room->trap = 1;
             }
 
             // room->type = room->id == startRoomID ? Start : room->id == goalRoomID ? Goal: room->type;
@@ -526,7 +534,7 @@ int main()
     int input_valid = 0;
     char input[50];
 
-    while(!input_valid)
+    while (!input_valid)
     {
         printf("\n");
         printf("----------------------------------");
@@ -553,43 +561,37 @@ int main()
         printf("----------------------------------");
         printf("\n");
 
-        //printf("Input %s\n", input);
+        // printf("Input %s\n", input);
 
         input_valid = atoi(input);
 
-
-        if(input_valid && (atoi(input)==atof(input))){
+        if (input_valid && (atoi(input) == atof(input)))
+        {
             eleccion = atoi(input);
 
             printf("eleccion: %d\n", eleccion);
 
-            if(eleccion >= 1 && 3 >= eleccion){
+            if (eleccion >= 1 && 3 >= eleccion)
+            {
                 break;
             }
-            
         }
         printf(RED "\nError: Ingrese una dificultad valida.\n" DEFAULT);
         input_valid = 0;
-        
-        
     }
 
-
-    switch(eleccion){
-        case 1:
-            N = 10;
-            break;
-        case 2:
-            N = 20;
-            break;
-        case 3:
-            N = 30;
-            break;
+    switch (eleccion)
+    {
+    case 1:
+        N = EASY;
+        break;
+    case 2:
+        N = MEDIUM;
+        break;
+    case 3:
+        N = HARD;
+        break;
     }
-
-    
-
-    
 
     if (N < 2)
     {
@@ -606,9 +608,7 @@ int main()
     int startRoomID = N % 2 == 0 ? total / 2 - N / 2 : total / 2 + 1; //(rand() % total) + 1; // Se obtiene una habitacion aleatoria para ser la de inicio
     int goalRoomID;
 
-    
     createMap(startRoomID, total);
-    
 
     // -------------------------------------------------------
 
@@ -636,7 +636,7 @@ int main()
     int chosenNextRoom;
 
     int roomCount = N - 1;
-    int deadEnds = rand() % ((N / 3) + 1);
+    int deadEnds = rand() % (4);
 
     roomCount = roomCount - deadEnds;
 
@@ -707,9 +707,8 @@ int main()
 
     // ------------------------------------------------------------------------
 
-
     // -------------------- Aqui se abren las puertas del laberinto en base al camino descubierto -------------------------
-    
+
     printf("Abriendo puertas del laberinto...\n\n");
 
     int camino[total];
@@ -720,7 +719,6 @@ int main()
 
     connectRooms(touredIds, connections, touredIdsSize);
 
-    
     int possibleDoors[4];
     int possibleDoorsSize = 0;
 
@@ -770,26 +768,18 @@ int main()
         }
         */
 
-
         for (int j = 0; j < possibleDoorsSize; j++)
         {
             neighbourID = getNeighbour(currRoom->id, possibleDoors[j]);
             openDoor(currRoom->id, possibleDoors[j]);
             openDoor(neighbourID, oppositeTable[possibleDoors[j]]);
             printf("Puerta abierta entre %d y %d\n", currRoom->id, neighbourID);
-
-            
         }
 
-
         possibleDoorsSize = 0;
-
     }
-    
 
     drawTemporalMap();
-
-    
 
     // -------------------- Modulo de creacion de callejones sin salida -------------------------
 
@@ -815,7 +805,7 @@ int main()
 
     int tries = unvisitedDirectionsSize;
 
-    while (0 < deadEnds && 0 < tries)
+    while (0 < deadEnds || caminoSize < N)
     {
         int random = rand() % univistedSize;
 
@@ -828,7 +818,7 @@ int main()
         currentRoom = getRoomPointerByID(connectedRoomID);
         roomToConnect = getRoomPointerByID(roomToConnectId);
 
-        printf(DEFAULT"Intentando conectar %d con %d\n" DEFAULT, connectedRoomID, roomToConnectId);
+        printf(DEFAULT "Intentando conectar %d con %d\n" DEFAULT, connectedRoomID, roomToConnectId);
         int res = openDoor(roomToConnectId, oppositeDirection);
         if (res)
         {
@@ -845,18 +835,26 @@ int main()
         else
         {
             printf(RED "No se pudo conectar %d con %d\n" DEFAULT, connectedRoomID, roomToConnectId);
-            //closeDoor(roomToConnectId, oppositeDirection);
+            // closeDoor(roomToConnectId, oppositeDirection);
             currentRoom->type = Wall;
         }
 
-        tries--;
-        
     }
 
-    drawTemporalMap();
+    getMapDetails(); // Con esto pueden obtener los detalles de cada habitacion,
+                    // o si quieren con struct room *room = getRoomPointerByID(id); pueden obtener el puntero a la habitacion y acceder a sus atributos
+                    // para obtener los datos de una habitacion desde la matriz de habitaciones pueden llamar a struct room *room = &gameMap[x][y]
+
+
+    drawTemporalMap(); // Con este pueden guiarse para ver como quedo el mapa y compararlo en SDL
+
 
     printf("Camino seguro: ");
+    printf("Camino Size: %d\n", caminoSize);
     printArray(camino, caminoSize);
+
+    printf("Dead Ends: %d\n", deadEnds);
+    printf("Total Rooms: %d\n", roomCount);
 
     return 0;
 }
