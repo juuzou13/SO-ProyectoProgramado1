@@ -379,7 +379,7 @@ void connectRooms(int *roomsArray, int *directionsArray, int size)
             openDoor(currentRoomId, oppositeDoor);
         }
         oppositeDoor = oppositeTable[directionsArray[i]];
-        printf(GREEN "Abriendo puerta %s de la habitacion %d\n" DEFAULT, getCardinalName(directionsArray[i]), currentRoomId);
+        //printf(GREEN "Abriendo puerta %s de la habitacion %d\n" DEFAULT, getCardinalName(directionsArray[i]), currentRoomId);
     }
 
     currentRoomPtr = getRoomPointerByID(roomsArray[size - 1]);
@@ -425,7 +425,7 @@ int openDoor(int roomID, int doorDirection)
 
     if (room->openDoorsLeft == 0)
     {
-        printf("Cant open anymore doors in %d\n", roomID);
+        //printf("Cant open any more doors in %d\n", roomID);
         return false;
     }
 
@@ -534,78 +534,13 @@ void createMap(int startRoomID, int total)
     }
 }
 
-int main()
+int generateMap()
 {
-
-    srand(time(NULL));
-
-    int eleccion = 0;
-    int input_valid = 0;
-    char input[50];
-
-    while (!input_valid)
-    {
-        printf("\n");
-        printf("----------------------------------");
-        printf("\n");
-        printf("\n");
-        printf("Escoja Dificultad");
-        printf("\n\n");
-        printf("1. Facil");
-        printf("\n");
-        printf("2. Medio");
-        printf("\n");
-        printf("3. Dificil");
-        printf("\n");
-
-        printf("\n");
-        printf("----------------------------------");
-        printf("\n");
-
-        printf("\n");
-        printf("Eleccion: ");
-        scanf("%s", &input);
-
-        printf("\n");
-        printf("----------------------------------");
-        printf("\n");
-
-        // printf("Input %s\n", input);
-
-        input_valid = atoi(input);
-
-        if (input_valid && (atoi(input) == atof(input)))
-        {
-            eleccion = atoi(input);
-
-            printf("eleccion: %d\n", eleccion);
-
-            if (eleccion >= 1 && 3 >= eleccion)
-            {
-                break;
-            }
-        }
-        printf(RED "\nError: Ingrese una dificultad valida.\n" DEFAULT);
-        input_valid = 0;
-    }
-
-    switch (eleccion)
-    {
-    case 1:
-        N = EASY;
-        break;
-    case 2:
-        N = MEDIUM;
-        break;
-    case 3:
-        N = HARD;
-        break;
-    }
 
     if (N < 2)
     {
         printf("N debe ser mayor o igual a 2.\n");
-        return 0;
+        return -1;
     }
 
     // -------------------- Modulo de creacion del mapa vacio -------------------------
@@ -782,13 +717,13 @@ int main()
             neighbourID = getNeighbour(currRoom->id, possibleDoors[j]);
             openDoor(currRoom->id, possibleDoors[j]);
             openDoor(neighbourID, oppositeTable[possibleDoors[j]]);
-            printf("Puerta abierta entre %d y %d\n", currRoom->id, neighbourID);
+            //printf("Puerta abierta entre %d y %d\n", currRoom->id, neighbourID);
         }
 
         possibleDoorsSize = 0;
     }
 
-    drawTemporalMap();
+    //drawTemporalMap();
 
     // -------------------- Modulo de creacion de callejones sin salida -------------------------
 
@@ -814,11 +749,21 @@ int main()
 
     int tries = unvisitedDirectionsSize;
 
+    int visitedIndexes[univistedSize];
+    int visitedIndexesSize = 0;
+
     int actualDeadEnds = 0;
+
+    int opporunities = 500;
 
     while (0 < deadEnds || caminoSize < N)
     {
         int random = rand() % univistedSize;
+
+        while(isInArray(visitedIndexes, visitedIndexesSize, random))
+        {
+            random = rand() % univistedSize;
+        }
 
         connectedRoomID = univisted[random];
         directionToConnect = unvisitedDirections[random];
@@ -829,7 +774,7 @@ int main()
         currentRoom = getRoomPointerByID(connectedRoomID);
         roomToConnect = getRoomPointerByID(roomToConnectId);
 
-        printf(DEFAULT "Intentando conectar %d con %d\n" DEFAULT, connectedRoomID, roomToConnectId);
+        //printf(DEFAULT "Intentando conectar %d con %d\n" DEFAULT, connectedRoomID, roomToConnectId);
         int res = openDoor(roomToConnectId, oppositeDirection);
         if (res)
         {
@@ -841,19 +786,25 @@ int main()
 
             openDoor(connectedRoomID, directionToConnect);
             deadEnds--;
-            printf(GREEN "Se conecto %d con %d\n" DEFAULT, connectedRoomID, roomToConnectId);
+            //printf(GREEN "Se conecto %d con %d\n" DEFAULT, connectedRoomID, roomToConnectId);
             actualDeadEnds++;
         }
         else
         {
-            printf(RED "No se pudo conectar %d con %d\n" DEFAULT, connectedRoomID, roomToConnectId);
+            //printf(RED "No se pudo conectar %d con %d\n" DEFAULT, connectedRoomID, roomToConnectId);
             // closeDoor(roomToConnectId, oppositeDirection);
             currentRoom->type = Wall;
+        }
+        opporunities--;
+
+        if (opporunities == 0)
+        {
+            return -1;
         }
 
     }
 
-    getMapDetails(); // Con esto pueden obtener los detalles de cada habitacion,
+    //getMapDetails(); // Con esto pueden obtener los detalles de cada habitacion,
                     // o si quieren con struct room *room = getRoomPointerByID(id); pueden obtener el puntero a la habitacion y acceder a sus atributos
                     // para obtener los datos de una habitacion desde la matriz de habitaciones pueden llamar a struct room *room = &gameMap[x][y]
 
@@ -861,15 +812,84 @@ int main()
     drawTemporalMap(); // Con este pueden guiarse para ver como quedo el mapa y compararlo en SDL
 
 
-    printf("Camino seguro: \n");
-    printf("Camino seguro size: %d\n", caminoSize-actualDeadEnds);
+    printf("Camino de habitaciones hasta el final (%d):\n", caminoSize-actualDeadEnds);
     printArray(camino, caminoSize-actualDeadEnds);
-    printf("DeadEnds: %d\n", actualDeadEnds);
+    printf("Callejones sin salida (%d):\n", actualDeadEnds);
     printArrayFrom(camino, caminoSize-actualDeadEnds, caminoSize);
 
     printf("Total Rooms: %d\n", caminoSize);
 
-    printf("Total Rooms: %d\n", roomCount);
 
+    return 1;
+}
+
+int main(){
+    srand(time(NULL));
+
+    int eleccion = 0;
+    int input_valid = 0;
+    char input[50];
+
+    while (!input_valid)
+    {
+        printf("\n");
+        printf("----------------------------------");
+        printf("\n");
+        printf("\n");
+        printf("Escoja Dificultad");
+        printf("\n\n");
+        printf("1. Facil");
+        printf("\n");
+        printf("2. Medio");
+        printf("\n");
+        printf("3. Dificil");
+        printf("\n");
+
+        printf("\n");
+        printf("----------------------------------");
+        printf("\n");
+
+        printf("\n");
+        printf("Eleccion: ");
+        scanf("%s", &input);
+
+        printf("\n");
+        printf("----------------------------------");
+        printf("\n");
+
+        // printf("Input %s\n", input);
+
+        input_valid = atoi(input);
+
+        if (input_valid && (atoi(input) == atof(input)))
+        {
+            eleccion = atoi(input);
+
+            if (eleccion >= 1 && 3 >= eleccion)
+            {
+                break;
+            }
+        }
+        printf(RED "\nError: Ingrese una dificultad valida.\n" DEFAULT);
+        input_valid = 0;
+    }
+
+    switch (eleccion)
+    {
+    case 1:
+        N = EASY;
+        break;
+    case 2:
+        N = MEDIUM;
+        break;
+    case 3:
+        N = HARD;
+        break;
+    }
+    
+    while(generateMap(N)==-1){
+        printf("Reintentando generar mapa...\n");
+        sleep(1);
+    }
     return 0;
 }
