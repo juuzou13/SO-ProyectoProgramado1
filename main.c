@@ -425,7 +425,7 @@ int openDoor(int roomID, int doorDirection)
 
     if (room->openDoorsLeft == 0)
     {
-        //printf("Cant open any more doors in %d\n", roomID);
+        printf("Cant open any more doors in %d\n", roomID);
         return false;
     }
 
@@ -663,7 +663,7 @@ int generateMap()
 
     connectRooms(touredIds, connections, touredIdsSize);
 
-    /*
+    
     int possibleDoors[4];
     int possibleDoorsSize = 0;
 
@@ -704,26 +704,31 @@ int generateMap()
             }
         }
 
-        /*
+        
         int chance = rand() % 10;
 
-        if (chance < 7)
+        if (chance < 8)
         {
-            possibleDoorsSize -= 1;
+            possibleDoorsSize = 0;
         }
         
 
         for (int j = 0; j < possibleDoorsSize; j++)
         {
             neighbourID = getNeighbour(currRoom->id, possibleDoors[j]);
-            openDoor(currRoom->id, possibleDoors[j]);
-            openDoor(neighbourID, oppositeTable[possibleDoors[j]]);
+            if(openDoor(neighbourID, oppositeTable[possibleDoors[j]])){
+                openDoor(currRoom->id, possibleDoors[j]);
+            }else{
+                printf("No se pudo abrir la puerta %d del cuarto %d\n", possibleDoors[j], currRoom->id);
+                closeDoor(neighbourID, oppositeTable[possibleDoors[j]]);
+            }
+            
             //printf("Puerta abierta entre %d y %d\n", currRoom->id, neighbourID);
         }
 
         possibleDoorsSize = 0;
     }
-    */
+    
 
     //drawTemporalMap();
 
