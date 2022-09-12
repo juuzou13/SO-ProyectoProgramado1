@@ -446,7 +446,7 @@ int closeDoor(int roomID, int doorDirection)
     }
 
     room->doors[doorDirection].state = Closed;
-    room->openDoorsLeft = room->openDoorsLeft + 1;
+    //room->openDoorsLeft = room->openDoorsLeft + 1;
 
     // printf("Door opened in room %d, direction %d\n");
 
