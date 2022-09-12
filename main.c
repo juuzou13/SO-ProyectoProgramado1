@@ -1,6 +1,26 @@
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+#include <SDL2/SDL_timer.h>
+
+#define SCREEN 700
+#define N 10
+#define CELL SCREEN / N
+#define DOOR 10
+
+/*
+#define N 20
+#define CELL SCREEN / N
+#define DOOR 22
+*/
+
+/*
+#define N 30
+#define CELL SCREEN / N
+#define DOOR 23
+*/
 
 #define true 1
 #define false 0
@@ -47,6 +67,8 @@ struct door
 
 struct room
 {
+    int i;
+    int j;
     int id;
     int type; // 0=Normal, 1=Start, 2=Goal
     struct door doors[4];
@@ -60,10 +82,13 @@ struct room
     int monster;
 };
 
-//---Variables gloables---
+//---Variables globales---
 
-short N;
+//short N;
 struct room **game_map;
+int current_room_id;
+int start_i;
+int start_j;
 
 //------------------------
 
@@ -120,6 +145,8 @@ char *getCardinalName(int cardinal)
 void getRoomDetails(struct room *room)
 {
     printf("\n");
+    printf("Room i: %d\n", room->i);
+    printf("Room j: %d\n", room->j);
     printf("Room id: %d\n", room->id);
     printf("Room north neighbour: %d\n", getNeighbour(room->id, North));
     printf("Room south neighbour: %d\n", getNeighbour(room->id, South));
@@ -496,6 +523,9 @@ void createMap(int startRoomID, int total)
         {
             struct room *room = (struct room *)malloc(sizeof(struct room));
 
+            room->i = i;
+            room->j = j;
+
             // Calcula un id desde 1,2,3..N*N, con la i y la j
             id = (j + 1) + N * i;
 
@@ -847,9 +877,14 @@ int generateMap()
                 newStartroom->occupied=1;
                 startRoomID = camino[r];
                 found = 1;
+                current_room_id = startRoomID;
             }
         }
     }
+
+    struct room* start_room_pointer = getRoomPointerByID(startRoomID);
+    start_i = start_room_pointer->j;
+    start_j = start_room_pointer->i;
 
     drawTemporalMap(); // Con este pueden guiarse para ver como quedo el mapa y compararlo en SDL
 
@@ -868,9 +903,14 @@ int generateMap()
 }
 
 int main(){
-    srand(time(NULL));
 
-    int eleccion = 0;
+    srand(time(NULL));
+	struct room *room_to_render;
+	int next_room_id;
+    struct room *current_room_player;
+	struct room *next_room_player;
+
+    /*int eleccion = 0;
     int input_valid = 0;
     char input[50];
 
@@ -929,10 +969,298 @@ int main(){
     case 3:
         N = HARD;
         break;
-    }
+    }*/
     
     while(generateMap(N)==-1){
         printf("Reintentando generar mapa...\n");
     }
+
+    /*--------------------------------------------------------------------------------------------------------------
+        INICIA CÓDIGO SDL
+    --------------------------------------------------------------------------------------------------------------*/
+
+    // retorna 0 si SDL se inicializa con éxito, diferente de cero en caso contrario
+	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+		printf("Error inicializando SDL: %s\n", SDL_GetError());
+	}
+
+    // crea una ventana
+	SDL_Window* win = SDL_CreateWindow("GAME", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN, SCREEN, 0);
+
+	// activa el programa que controla el hardware gráfico y establece las flags
+	Uint32 render_flags = SDL_RENDERER_ACCELERATED;
+
+	// crea el renderizador
+	SDL_Renderer* rend = SDL_CreateRenderer(win, -1, render_flags);
+
+	// crea una superficie para cargar la imagen en memoria principal
+	SDL_Surface* hero;
+	SDL_Surface* wall;
+	SDL_Surface* room;
+	SDL_Surface* door;
+    SDL_Surface* start;
+	SDL_Surface* goal;
+    //SDL_Surface* monster;
+
+	// ubicación de las imágenes
+	hero = IMG_Load("hero.png");
+	wall = IMG_Load("wall.jpg");
+	room = IMG_Load("room.jpg");
+	door = IMG_Load("door.png");
+    start = IMG_Load("start.png");
+    goal = IMG_Load("goal.png");
+	//monster = IMG_Load("monster.jpg");
+
+	// carga la imagen en la memoria del hardware gráfico
+	SDL_Texture* tex_hero = SDL_CreateTextureFromSurface(rend, hero);
+	SDL_Texture* tex_wall = SDL_CreateTextureFromSurface(rend, wall);
+	SDL_Texture* tex_room = SDL_CreateTextureFromSurface(rend, room);
+	SDL_Texture* tex_door = SDL_CreateTextureFromSurface(rend, door);
+    SDL_Texture* tex_start = SDL_CreateTextureFromSurface(rend, start);
+	SDL_Texture* tex_goal = SDL_CreateTextureFromSurface(rend, goal);
+    //SDL_Texture* tex_monster = SDL_CreateTextureFromSurface(rend, monster);
+
+	// limpia la memoria principal
+	SDL_FreeSurface(hero);
+	SDL_FreeSurface(wall);
+	SDL_FreeSurface(room);
+	SDL_FreeSurface(door);
+    SDL_FreeSurface(start);
+	SDL_FreeSurface(goal);
+    //SDL_FreeSurface(monster);
+
+	// permite controlar la posición de los sprites en pantalla
+	SDL_Rect dest_hero;
+	SDL_Rect dest_wall;
+	SDL_Rect dest_room;
+	SDL_Rect dest_door;
+    SDL_Rect dest_start;
+	SDL_Rect dest_goal;
+    //SDL_Rect dest_monster;
+
+	// conecta las texturas con dest para controlar su posición
+	SDL_QueryTexture(tex_hero, NULL, NULL, &dest_hero.w, &dest_hero.h);
+	SDL_QueryTexture(tex_wall, NULL, NULL, &dest_wall.w, &dest_wall.h);
+	SDL_QueryTexture(tex_room, NULL, NULL, &dest_room.w, &dest_room.h);
+	SDL_QueryTexture(tex_door, NULL, NULL, &dest_door.w, &dest_door.h);
+    SDL_QueryTexture(tex_start, NULL, NULL, &dest_start.w, &dest_start.h);
+    SDL_QueryTexture(tex_goal, NULL, NULL, &dest_goal.w, &dest_goal.h);
+    //SDL_QueryTexture(tex_monster, NULL, NULL, &dest_monster.w, &dest_monster.h);
+
+	// ajusta el ancho y alto de los sprites
+	dest_hero.w = CELL;
+	dest_hero.h = CELL;
+
+	dest_wall.w = CELL;
+	dest_wall.h = CELL;
+
+	dest_room.w = CELL;
+	dest_room.h = CELL;
+
+	dest_door.w /= DOOR;
+	dest_door.h /= DOOR;
+
+    dest_start.w = CELL;
+    dest_start.h = CELL;
+
+    dest_goal.w = CELL;
+    dest_goal.h = CELL;
+
+    //dest_monster.w = CELL;
+    //dest_monster.h = CELL;
+
+	// establece la posición inicial en x del sprite
+	dest_hero.x = start_i*CELL;
+
+	// establece la posición inicial en y del sprite
+	dest_hero.y = start_j*CELL;
+
+	// controla el ciclo de animación
+	int close = 0;
+
+	// velocidad del sprite
+	//int speed = 300;
+
+	// ciclo de animación
+	while (!close) {
+		SDL_Event event;
+
+		// administración de eventos
+		while (SDL_PollEvent(&event)) {
+			switch (event.type) {
+
+			case SDL_QUIT:
+				// manejando el botón de cerrar
+				close = 1;
+				break;
+
+			case SDL_KEYDOWN:
+				// API de teclado para presionar teclas
+				switch (event.key.keysym.scancode) {
+				case SDL_SCANCODE_W:
+				case SDL_SCANCODE_UP:
+					next_room_id = getNeighbour(current_room_id, North);
+					if(next_room_id != -1) {
+						next_room_player = getRoomPointerByID(next_room_id);
+						if(next_room_player->type != Wall) {
+                            current_room_player = getRoomPointerByID(current_room_id);
+                            if(current_room_player->doors[North].state == 1) {
+                                current_room_player->occupied = false;
+                                next_room_player->occupied = true;
+                                current_room_id = next_room_id;
+							    dest_hero.y -= CELL;
+                            }
+						}
+					}
+					break;
+				case SDL_SCANCODE_A:
+				case SDL_SCANCODE_LEFT:
+                    next_room_id = getNeighbour(current_room_id, West);
+					if(next_room_id != -1) {
+						next_room_player = getRoomPointerByID(next_room_id);
+						if(next_room_player->type != Wall) {
+                            current_room_player = getRoomPointerByID(current_room_id);
+                            if(current_room_player->doors[West].state == 1) {
+                                current_room_player->occupied = false;
+                                next_room_player->occupied = true;
+                                current_room_id = next_room_id;
+							    dest_hero.x -= CELL;
+                            }
+						}
+					}
+					break;
+				case SDL_SCANCODE_S:
+				case SDL_SCANCODE_DOWN:
+                    next_room_id = getNeighbour(current_room_id, South);
+					if(next_room_id != -1) {
+						next_room_player = getRoomPointerByID(next_room_id);
+						if(next_room_player->type != Wall) {
+                            current_room_player = getRoomPointerByID(current_room_id);
+                            if(current_room_player->doors[South].state == 1) {
+                                current_room_player->occupied = false;
+                                next_room_player->occupied = true;
+                                current_room_id = next_room_id;
+							    dest_hero.y += CELL;
+                            }
+						}
+					}
+					break;
+				case SDL_SCANCODE_D:
+				case SDL_SCANCODE_RIGHT:
+                    next_room_id = getNeighbour(current_room_id, East);
+					if(next_room_id != -1) {
+						next_room_player = getRoomPointerByID(next_room_id);
+						if(next_room_player->type != Wall) {
+                            current_room_player = getRoomPointerByID(current_room_id);
+                            if(current_room_player->doors[East].state == 1) {
+                                current_room_player->occupied = false;
+                                next_room_player->occupied = true;
+                                current_room_id = next_room_id;
+							    dest_hero.x += CELL;
+                            }
+						}
+					}
+					break;
+				default:
+					break;
+				}
+			}
+		}
+
+		// límite derecho
+		if (dest_hero.x + dest_hero.w > SCREEN)
+			dest_hero.x = SCREEN - dest_hero.w;
+
+		// límite izquierdo
+		if (dest_hero.x < 0)
+			dest_hero.x = 0;
+
+		// límite inferior
+		if (dest_hero.y + dest_hero.h > SCREEN)
+			dest_hero.y = SCREEN - dest_hero.h;
+
+		// límite superior
+		if (dest_hero.y < 0)
+			dest_hero.y = 0;
+
+		// limpia la pantalla
+		SDL_RenderClear(rend);
+
+		for(int i = 0; i < N; i++) {
+			for(int j = 0; j < N; j++) {
+				room_to_render = &game_map[i][j];
+
+				if(room_to_render->type == Wall) {
+                    dest_wall.x = j*CELL;
+				    dest_wall.y = i*CELL;
+					SDL_RenderCopy(rend, tex_wall, NULL, &dest_wall);
+				} else if(room_to_render->type == Start) {
+                    dest_start.x = j*CELL;
+                    dest_start.y = i*CELL;
+                    SDL_RenderCopy(rend, tex_start, NULL, &dest_start);
+                } else if(room_to_render->type == Goal) {
+                    dest_goal.x = j*CELL;
+                    dest_goal.y = i*CELL;
+                    SDL_RenderCopy(rend, tex_goal, NULL, &dest_goal);
+                } else {
+                    dest_room.x = j*CELL;
+				    dest_room.y = i*CELL;
+					SDL_RenderCopy(rend, tex_room, NULL, &dest_room);
+					for (int k = 0; k < 4; k++) {
+						if(room_to_render->doors[k].state == 1) {
+							switch(room_to_render->doors[k].cardinal) {
+                                // North = 0, South = 1, East = 2, West = 3
+								case 0:
+									dest_door.x = j*CELL + 30; // 30 15 8 depende del tamaño de la puerta
+									dest_door.y = i*CELL;
+									break;
+								case 1:
+									dest_door.x = j*CELL + 30; // 30 15 8 
+									dest_door.y = i*CELL + 45; // 45 20 12 
+									break;
+								case 2:
+									dest_door.x = j*CELL + 50; // 50 30 17 
+									dest_door.y = i*CELL + 20; // 20 15 6 
+									break;
+								case 3:
+									dest_door.x = j*CELL; 
+									dest_door.y = i*CELL + 20; // 20 10 6 
+									break;
+								default:
+									break;
+							}
+							SDL_RenderCopy(rend, tex_door, NULL, &dest_door);
+						}
+					}
+				}
+			}
+		}
+
+		SDL_RenderCopy(rend, tex_hero, NULL, &dest_hero);
+
+		// activa los buffers dobles para renderizado múltiple
+		SDL_RenderPresent(rend);
+
+		// calcula 60 fotogramas por segundo
+		SDL_Delay(1000 / 60);
+	}
+
+	// destruye las texturas
+	SDL_DestroyTexture(tex_hero);
+	SDL_DestroyTexture(tex_wall);
+    SDL_DestroyTexture(tex_room);
+	SDL_DestroyTexture(tex_door);
+    SDL_DestroyTexture(tex_start);
+	SDL_DestroyTexture(tex_goal);
+
+	// destruye el renderizador
+	SDL_DestroyRenderer(rend);
+
+	// destruye la ventana
+	SDL_DestroyWindow(win);
+	
+	// cierra SDL
+	SDL_Quit();
+
     return 0;
 }
