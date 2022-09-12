@@ -845,6 +845,7 @@ int generateMap()
                 struct room * newStartroom = getRoomPointerByID(camino[r]);
                 newStartroom->type = Start;
                 newStartroom->occupied=1;
+                startRoomID = camino[r];
                 found = 1;
             }
         }
@@ -859,6 +860,9 @@ int generateMap()
     printArrayFrom(camino, caminoSize-actualDeadEnds, caminoSize);
 
     printf("Total Rooms: %d\n", caminoSize);
+
+    printf("Start Room: %d\n", startRoomID);
+    printf("Goal Room: %d\n", goalRoomID);
 
     return 1;
 }
