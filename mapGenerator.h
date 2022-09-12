@@ -207,7 +207,8 @@ int setOccupied(int id, int state){
     {
         int i = (id - 1) / N;
         int j = (id - 1) % N;
-        game_map[i][j].occupied = state;
+        struct room *room = &game_map[i][j];
+        room->occupied = state;
         return 0;
     }
 }
