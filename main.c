@@ -730,7 +730,7 @@ int generateMap()
     printf("Creando callejones sin salida...\n\n");
 
     int univisted[total];
-    int univistedSize = 0;
+    int unvisitedSize = 0;
 
     int unvisitedDirections[total];
     int unvisitedDirectionsSize = 0;
@@ -738,7 +738,7 @@ int generateMap()
     struct room *currentRoom;
     struct room *roomToConnect;
 
-    getUnvisitedeighbors(touredIds, touredIdsSize, &univisted, &univistedSize, &unvisitedDirections, &unvisitedDirectionsSize, goalRoomID);
+    getUnvisitedeighbors(touredIds, touredIdsSize, &univisted, &unvisitedSize, &unvisitedDirections, &unvisitedDirectionsSize, goalRoomID);
 
     int oppositeTable[4] = {1, 0, 3, 2};
 
@@ -749,7 +749,7 @@ int generateMap()
 
     int tries = unvisitedDirectionsSize;
 
-    int visitedIndexes[univistedSize];
+    int visitedIndexes[unvisitedSize];
     int visitedIndexesSize = 0;
 
     int actualDeadEnds = 0;
@@ -758,11 +758,11 @@ int generateMap()
 
     while (0 < deadEnds || caminoSize < N)
     {
-        int random = rand() % univistedSize;
+        int random = rand() % unvisitedSize;
 
         while(isInArray(visitedIndexes, visitedIndexesSize, random))
         {
-            random = rand() % univistedSize;
+            random = rand() % unvisitedSize;
         }
 
         connectedRoomID = univisted[random];
@@ -795,19 +795,52 @@ int generateMap()
             // closeDoor(roomToConnectId, oppositeDirection);
             currentRoom->type = Wall;
         }
-        opporunities--;
 
-        if (opporunities == 0)
+        visitedIndexes[visitedIndexesSize++] = random;
+
+        if (visitedIndexesSize == unvisitedSize)
         {
             return -1;
         }
+
 
     }
 
     //getMapDetails(); // Con esto pueden obtener los detalles de cada habitacion,
                     // o si quieren con struct room *room = getRoomPointerByID(id); pueden obtener el puntero a la habitacion y acceder a sus atributos
                     // para obtener los datos de una habitacion desde la matriz de habitaciones pueden llamar a struct room *room = &gameMap[x][y]
+    
 
+    struct room *startRoom = getRoomPointerByID(startRoomID);
+    startRoom->type = getRandomRoomType();
+    startRoom->occupied=0;
+
+    int found = 0;
+    int d = 0;
+
+    while(!found){
+        int connectsToGoal = 0;
+        int r = rand() % caminoSize;
+        
+        if(camino[r]!=goalRoomID){
+            for(int j=0; j<4; j++){            
+                d = getNeighbour(camino[r], j);
+                if(d!=-1){
+                    struct room * Nroom = getRoomPointerByID(getNeighbour(camino[r], j));
+                    if(Nroom->type == Goal){
+                        connectsToGoal = 1;
+                    }
+                }
+            }
+            printf("Habitacion %d conecta con la meta? %d\n", camino[r], connectsToGoal);
+            if(!connectsToGoal){
+                struct room * newStartroom = getRoomPointerByID(camino[r]);
+                newStartroom->type = Start;
+                newStartroom->occupied=1;
+                found = 1;
+            }
+        }
+    }
 
     drawTemporalMap(); // Con este pueden guiarse para ver como quedo el mapa y compararlo en SDL
 
@@ -818,7 +851,6 @@ int generateMap()
     printArrayFrom(camino, caminoSize-actualDeadEnds, caminoSize);
 
     printf("Total Rooms: %d\n", caminoSize);
-
 
     return 1;
 }
@@ -889,7 +921,6 @@ int main(){
     
     while(generateMap(N)==-1){
         printf("Reintentando generar mapa...\n");
-        sleep(1);
     }
     return 0;
 }
