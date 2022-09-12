@@ -2,11 +2,12 @@
   CFLAGS  = -g -Wall
   RM = rm -f
   TARGET = main
+  FILES = $(wildcard ./*.c ./*.h)
  
   all: $(TARGET) run
   
-  $(TARGET): $(TARGET).c
-	$(CC) $(CFLAGS) -o $(TARGET) $(TARGET).c -w
+  $(TARGET): $(FILES)
+	$(CC) $(CFLAGS) -o $(TARGET) $(TARGET).c -w -lpthread
  
   clean:
 	@$(RM) $(TARGET)
