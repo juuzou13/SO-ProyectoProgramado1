@@ -663,7 +663,7 @@ int generateMap()
 
     connectRooms(touredIds, connections, touredIdsSize);
 
-    
+    /*
     int possibleDoors[4];
     int possibleDoorsSize = 0;
 
@@ -728,6 +728,7 @@ int generateMap()
 
         possibleDoorsSize = 0;
     }
+    */
     
 
     //drawTemporalMap();
