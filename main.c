@@ -298,35 +298,35 @@ void drawTemporalMap()
                 }
             }
             char *spaces = "";
-            char *spaces2 = "    ";
+            char *spaces2 = "  ";
 
             int q = room->id;
             if (q < 10)
             {
-                spaces2 = "   ";
+                spaces2 = "  ";
             }
             else if (q < 100)
             {
-                spaces2 = "  ";
+                spaces2 = " ";
             }
             else if (q < 1000)
             {
-                spaces2 = " ";
+                spaces2 = "";
             }
 
             if (room->type == Start)
             {
                 roomColor = GREEN;
-                printf("%s| " GREEN "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
+                printf("%s|" GREEN "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
             }
             else if (room->type == Goal)
             {
                 roomColor = RED;
-                printf("%s| " RED "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
+                printf("%s|" RED "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
             }
             else
             {
-                printf("%s| " DEFAULT "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
+                printf("%s|" DEFAULT "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
             }
 
             for (int k = 0; k < 4; k++)
@@ -663,6 +663,7 @@ int generateMap()
 
     connectRooms(touredIds, connections, touredIdsSize);
 
+    /*
     int possibleDoors[4];
     int possibleDoorsSize = 0;
 
@@ -710,7 +711,7 @@ int generateMap()
         {
             possibleDoorsSize -= 1;
         }
-        */
+        
 
         for (int j = 0; j < possibleDoorsSize; j++)
         {
@@ -722,6 +723,7 @@ int generateMap()
 
         possibleDoorsSize = 0;
     }
+    */
 
     //drawTemporalMap();
 
