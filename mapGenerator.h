@@ -254,11 +254,23 @@ int getFreeNeighboursNoStartGoal(int id)
 
         int k = 0;
         struct room *tempNeighbour;
+
+        int a[4] = {0,1,2,3};
+
+        for (int i = 0; i < 4; i++)
+        {
+            int j = rand() % 4;
+            int temp = a[i];
+            a[i] = a[j];
+            a[j] = temp;
+        }
+
+        
         
         int neighbourID;
         for (int i = 0; i < 4; i++)
         {
-            neighbourID = getNeighbour(id, i);
+            neighbourID = getNeighbour(id, a[i]);
             if (neighbourID != -1)
             {
                 //printf("A\n");

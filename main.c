@@ -7,6 +7,7 @@
 #include <semaphore.h>
 
 pthread_mutex_t lock;
+pthread_barrier_t barrier;
 sem_t semaph;
 
 void *monsterLife(void *m)
@@ -23,37 +24,50 @@ void *monsterLife(void *m)
     {        
         
         r = rand() % 100;
-        if (r < 8)
+        if (r >= 50)
         {
-            
-            sem_wait(&semaph);
-
+            //sem_wait(&semaph);
             //printf("\n\n-------------------------------------------------------------------------\n\n");
             //printf("Looking for free neighbours of %d in %d...\n\n", mon->id, mon->location);
+            sleep(rand()%2);
 
+            pthread_mutex_lock(&lock);
             int loc = getFreeNeighboursNoStartGoal(mon->location);
-
-            if (loc != -1)
-            {
+            d--;
+            if (loc != -1){
                 setOccupied(mon->location, 0);
                 //printf("Found (%d), a free neighbour of monster %d, located in %d\n", loc, mon->id, mon->location);
                 monsterMove(mon, loc);
                 setOccupied(loc, 1);
+                system("clear");
+                drawTemporalMap();
+                
             }
             else
             {
                 //printf("No free neighbours found for monster %d, located in %d\n", mon->id, mon->location);
             }
-            system("clear");
-            drawTemporalMap();
-            sleep(1);
             //printf("\n\n-------------------------------------------------------------------------\n\n");
-            d--;
-            sem_post(&semaph);
+            //sem_post(&semaph);
+            
+
+            if(d==0){
+                setOccupied(mon->location, 0);
+            }
+            pthread_mutex_unlock(&lock);
+            
+
+            //pthread_yield();
+
+
+            
+        }else{
             
         }
         
     }
+
+    
 
     pthread_exit(0);
 
@@ -133,7 +147,11 @@ int main()
 
     int monsterCount = N / 2;
 
-    sem_init(&semaph, 0, N / 2);
+
+    
+
+    sem_init(&semaph, 0, 3);
+    pthread_mutex_init(&lock, NULL);
 
     pthread_t *monsterThreads;
     monsterThreads = (pthread_t *)malloc(sizeof(pthread_t) * monsterCount);
@@ -169,6 +187,7 @@ int main()
     
 
     sem_destroy(&semaph);
+    pthread_mutex_destroy(&lock);
 
     return 0;
 }
