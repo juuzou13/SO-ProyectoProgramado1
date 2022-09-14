@@ -37,6 +37,10 @@
 #define MEDIUM 20
 #define HARD 30
 
+#define GAME_STATE_MENU 0
+#define GAME_STATE_RUN 1
+
+
 enum CardinalPoint
 {
     North,
@@ -89,6 +93,7 @@ struct room **game_map;
 int current_room_id;
 int start_i;
 int start_j;
+int current_game_state = 0;
 
 //------------------------
 
@@ -1000,6 +1005,10 @@ int main(){
 	SDL_Surface* door;
     SDL_Surface* start;
 	SDL_Surface* goal;
+    SDL_Surface* easy;
+	SDL_Surface* medium;
+	SDL_Surface* hard;
+    SDL_Surface* select_label;
     //SDL_Surface* monster;
 
 	// ubicación de las imágenes
@@ -1009,6 +1018,11 @@ int main(){
 	door = IMG_Load("door.png");
     start = IMG_Load("start.png");
     goal = IMG_Load("goal.png");
+
+    easy = IMG_Load("easyLevel.jpg");
+    medium = IMG_Load("mediumLevel.jpg");
+    hard = IMG_Load("hardLevel.jpg");
+    select_label = IMG_Load("selectLevel.png");
 	//monster = IMG_Load("monster.jpg");
 
 	// carga la imagen en la memoria del hardware gráfico
@@ -1018,6 +1032,11 @@ int main(){
 	SDL_Texture* tex_door = SDL_CreateTextureFromSurface(rend, door);
     SDL_Texture* tex_start = SDL_CreateTextureFromSurface(rend, start);
 	SDL_Texture* tex_goal = SDL_CreateTextureFromSurface(rend, goal);
+    SDL_Texture* tex_easy = SDL_CreateTextureFromSurface(rend, easy);
+    SDL_Texture* tex_medium = SDL_CreateTextureFromSurface(rend, medium);
+    SDL_Texture* tex_hard = SDL_CreateTextureFromSurface(rend, hard);
+    SDL_Texture* tex_select = SDL_CreateTextureFromSurface(rend, select_label);
+    
     //SDL_Texture* tex_monster = SDL_CreateTextureFromSurface(rend, monster);
 
 	// limpia la memoria principal
@@ -1027,6 +1046,10 @@ int main(){
 	SDL_FreeSurface(door);
     SDL_FreeSurface(start);
 	SDL_FreeSurface(goal);
+    SDL_FreeSurface(easy);
+    SDL_FreeSurface(medium);
+    SDL_FreeSurface(hard);
+    SDL_FreeSurface(select_label);
     //SDL_FreeSurface(monster);
 
 	// permite controlar la posición de los sprites en pantalla
@@ -1036,6 +1059,10 @@ int main(){
 	SDL_Rect dest_door;
     SDL_Rect dest_start;
 	SDL_Rect dest_goal;
+    SDL_Rect dest_easy;
+    SDL_Rect dest_medium;
+    SDL_Rect dest_hard;
+    SDL_Rect dest_select;
     //SDL_Rect dest_monster;
 
 	// conecta las texturas con dest para controlar su posición
@@ -1045,6 +1072,10 @@ int main(){
 	SDL_QueryTexture(tex_door, NULL, NULL, &dest_door.w, &dest_door.h);
     SDL_QueryTexture(tex_start, NULL, NULL, &dest_start.w, &dest_start.h);
     SDL_QueryTexture(tex_goal, NULL, NULL, &dest_goal.w, &dest_goal.h);
+    SDL_QueryTexture(tex_easy, NULL, NULL, &dest_easy.w, &dest_easy.h);
+    SDL_QueryTexture(tex_medium, NULL, NULL, &dest_medium.w, &dest_medium.h);
+    SDL_QueryTexture(tex_hard, NULL, NULL, &dest_hard.w, &dest_hard.h);
+    SDL_QueryTexture(tex_select, NULL, NULL, &dest_select.w, &dest_select.h);
     //SDL_QueryTexture(tex_monster, NULL, NULL, &dest_monster.w, &dest_monster.h);
 
 	// ajusta el ancho y alto de los sprites
@@ -1066,6 +1097,19 @@ int main(){
     dest_goal.w = CELL;
     dest_goal.h = CELL;
 
+    dest_easy.w *= 1.3; 
+    dest_easy.h *= 1.3; 
+
+    dest_medium.w *= 1.3; 
+    dest_medium.h *= 1.3; 
+
+    dest_hard.w *= 1.3; 
+    dest_hard.h *= 1.3; 
+
+    dest_select.w *= 0.8;
+    dest_select.h *= 0.8;
+
+
     //dest_monster.w = CELL;
     //dest_monster.h = CELL;
 
@@ -1075,11 +1119,26 @@ int main(){
 	// establece la posición inicial en y del sprite
 	dest_hero.y = start_j*CELL;
 
+    // establece la posición inicial en 'x'y 'y' de los elementos del menú
+    dest_easy.x = (SCREEN - dest_easy.w) / 2;
+	dest_easy.y = 230;
+
+    dest_medium.x = (SCREEN - dest_medium.w) / 2;
+	dest_medium.y = 400;
+
+    dest_hard.x = (SCREEN - dest_hard.w) / 2;
+	dest_hard.y = 550;
+
+	dest_select.x = (SCREEN - dest_select.w) / 2;
+	dest_select.y = 70;
+
 	// controla el ciclo de animación
 	int close = 0;
 
 	// velocidad del sprite
 	//int speed = 300;
+
+    SDL_Point mousePosition;
 
 	// ciclo de animación
 	while (!close) {
@@ -1093,77 +1152,111 @@ int main(){
 				// manejando el botón de cerrar
 				close = 1;
 				break;
+            
+            case SDL_MOUSEBUTTONDOWN:
+                mousePosition.x = event.motion.x; 
+                mousePosition.y = event.motion.y;
+
+                /*if(current_game_state == 1){
+                    if (SDL_PointInRect(&mousePosition, &dest_hero)) {
+                        //printf("CLick on surface\n");
+                        current_game_state = 0;       
+                        break;               
+                    }
+                }*/
+
+                if(current_game_state == 0){
+                    if (SDL_PointInRect(&mousePosition, &dest_easy)) {
+                        printf("CLick on easy\n");
+                        pressedButtonMenu(event.button, (int) EASY);  
+                        break;                      
+                    }
+                    if (SDL_PointInRect(&mousePosition, &dest_medium)) {
+                        printf("CLick on medium\n");
+                        pressedButtonMenu(event.button, (int) MEDIUM);
+                        break;
+                    }
+                    if (SDL_PointInRect(&mousePosition, &dest_hard)) {
+                        printf("CLick on hard\n");
+                        pressedButtonMenu(event.button, (int) HARD);
+                        break;
+                    }
+                }
+                break;
 
 			case SDL_KEYDOWN:
 				// API de teclado para presionar teclas
-				switch (event.key.keysym.scancode) {
-				case SDL_SCANCODE_W:
-				case SDL_SCANCODE_UP:
-					next_room_id = getNeighbour(current_room_id, North);
-					if(next_room_id != -1) {
-						next_room_player = getRoomPointerByID(next_room_id);
-						if(next_room_player->type != Wall) {
-                            current_room_player = getRoomPointerByID(current_room_id);
-                            if(current_room_player->doors[North].state == 1) {
-                                current_room_player->occupied = false;
-                                next_room_player->occupied = true;
-                                current_room_id = next_room_id;
-							    dest_hero.y -= CELL;
+                if(current_game_state == 1){
+
+                    switch (event.key.keysym.scancode) {
+                    case SDL_SCANCODE_W:
+                    case SDL_SCANCODE_UP:
+                        next_room_id = getNeighbour(current_room_id, North);
+                        if(next_room_id != -1) {
+                            next_room_player = getRoomPointerByID(next_room_id);
+                            if(next_room_player->type != Wall) {
+                                current_room_player = getRoomPointerByID(current_room_id);
+                                if(current_room_player->doors[North].state == 1) {
+                                    current_room_player->occupied = false;
+                                    next_room_player->occupied = true;
+                                    current_room_id = next_room_id;
+                                    dest_hero.y -= CELL;
+                                }
                             }
-						}
-					}
-					break;
-				case SDL_SCANCODE_A:
-				case SDL_SCANCODE_LEFT:
-                    next_room_id = getNeighbour(current_room_id, West);
-					if(next_room_id != -1) {
-						next_room_player = getRoomPointerByID(next_room_id);
-						if(next_room_player->type != Wall) {
-                            current_room_player = getRoomPointerByID(current_room_id);
-                            if(current_room_player->doors[West].state == 1) {
-                                current_room_player->occupied = false;
-                                next_room_player->occupied = true;
-                                current_room_id = next_room_id;
-							    dest_hero.x -= CELL;
+                        }
+                        break;
+                    case SDL_SCANCODE_A:
+                    case SDL_SCANCODE_LEFT:
+                        next_room_id = getNeighbour(current_room_id, West);
+                        if(next_room_id != -1) {
+                            next_room_player = getRoomPointerByID(next_room_id);
+                            if(next_room_player->type != Wall) {
+                                current_room_player = getRoomPointerByID(current_room_id);
+                                if(current_room_player->doors[West].state == 1) {
+                                    current_room_player->occupied = false;
+                                    next_room_player->occupied = true;
+                                    current_room_id = next_room_id;
+                                    dest_hero.x -= CELL;
+                                }
                             }
-						}
-					}
-					break;
-				case SDL_SCANCODE_S:
-				case SDL_SCANCODE_DOWN:
-                    next_room_id = getNeighbour(current_room_id, South);
-					if(next_room_id != -1) {
-						next_room_player = getRoomPointerByID(next_room_id);
-						if(next_room_player->type != Wall) {
-                            current_room_player = getRoomPointerByID(current_room_id);
-                            if(current_room_player->doors[South].state == 1) {
-                                current_room_player->occupied = false;
-                                next_room_player->occupied = true;
-                                current_room_id = next_room_id;
-							    dest_hero.y += CELL;
+                        }
+                        break;
+                    case SDL_SCANCODE_S:
+                    case SDL_SCANCODE_DOWN:
+                        next_room_id = getNeighbour(current_room_id, South);
+                        if(next_room_id != -1) {
+                            next_room_player = getRoomPointerByID(next_room_id);
+                            if(next_room_player->type != Wall) {
+                                current_room_player = getRoomPointerByID(current_room_id);
+                                if(current_room_player->doors[South].state == 1) {
+                                    current_room_player->occupied = false;
+                                    next_room_player->occupied = true;
+                                    current_room_id = next_room_id;
+                                    dest_hero.y += CELL;
+                                }
                             }
-						}
-					}
-					break;
-				case SDL_SCANCODE_D:
-				case SDL_SCANCODE_RIGHT:
-                    next_room_id = getNeighbour(current_room_id, East);
-					if(next_room_id != -1) {
-						next_room_player = getRoomPointerByID(next_room_id);
-						if(next_room_player->type != Wall) {
-                            current_room_player = getRoomPointerByID(current_room_id);
-                            if(current_room_player->doors[East].state == 1) {
-                                current_room_player->occupied = false;
-                                next_room_player->occupied = true;
-                                current_room_id = next_room_id;
-							    dest_hero.x += CELL;
+                        }
+                        break;
+                    case SDL_SCANCODE_D:
+                    case SDL_SCANCODE_RIGHT:
+                        next_room_id = getNeighbour(current_room_id, East);
+                        if(next_room_id != -1) {
+                            next_room_player = getRoomPointerByID(next_room_id);
+                            if(next_room_player->type != Wall) {
+                                current_room_player = getRoomPointerByID(current_room_id);
+                                if(current_room_player->doors[East].state == 1) {
+                                    current_room_player->occupied = false;
+                                    next_room_player->occupied = true;
+                                    current_room_id = next_room_id;
+                                    dest_hero.x += CELL;
+                                }
                             }
-						}
-					}
-					break;
-				default:
-					break;
-				}
+                        }
+                        break;
+                    default:
+                        break;
+                    }
+                }
 			}
 		}
 
@@ -1186,57 +1279,67 @@ int main(){
 		// limpia la pantalla
 		SDL_RenderClear(rend);
 
-		for(int i = 0; i < N; i++) {
-			for(int j = 0; j < N; j++) {
-				room_to_render = &game_map[i][j];
+        switch(current_game_state){
+            case 1:
+                for(int i = 0; i < N; i++) {
+                    for(int j = 0; j < N; j++) {
+                        room_to_render = &game_map[i][j];
 
-				if(room_to_render->type == Wall) {
-                    dest_wall.x = j*CELL;
-				    dest_wall.y = i*CELL;
-					SDL_RenderCopy(rend, tex_wall, NULL, &dest_wall);
-				} else if(room_to_render->type == Start) {
-                    dest_start.x = j*CELL;
-                    dest_start.y = i*CELL;
-                    SDL_RenderCopy(rend, tex_start, NULL, &dest_start);
-                } else if(room_to_render->type == Goal) {
-                    dest_goal.x = j*CELL;
-                    dest_goal.y = i*CELL;
-                    SDL_RenderCopy(rend, tex_goal, NULL, &dest_goal);
-                } else {
-                    dest_room.x = j*CELL;
-				    dest_room.y = i*CELL;
-					SDL_RenderCopy(rend, tex_room, NULL, &dest_room);
-					for (int k = 0; k < 4; k++) {
-						if(room_to_render->doors[k].state == 1) {
-							switch(room_to_render->doors[k].cardinal) {
-                                // North = 0, South = 1, East = 2, West = 3
-								case 0:
-									dest_door.x = j*CELL + 30; // 30 15 8 depende del tamaño de la puerta
-									dest_door.y = i*CELL;
-									break;
-								case 1:
-									dest_door.x = j*CELL + 30; // 30 15 8 
-									dest_door.y = i*CELL + 45; // 45 20 12 
-									break;
-								case 2:
-									dest_door.x = j*CELL + 50; // 50 30 17 
-									dest_door.y = i*CELL + 20; // 20 15 6 
-									break;
-								case 3:
-									dest_door.x = j*CELL; 
-									dest_door.y = i*CELL + 20; // 20 10 6 
-									break;
-								default:
-									break;
-							}
-							SDL_RenderCopy(rend, tex_door, NULL, &dest_door);
-						}
-					}
-				}
-			}
-		}
-
-		SDL_RenderCopy(rend, tex_hero, NULL, &dest_hero);
+                        if(room_to_render->type == Wall) {
+                            dest_wall.x = j*CELL;
+                            dest_wall.y = i*CELL;
+                            SDL_RenderCopy(rend, tex_wall, NULL, &dest_wall);
+                        } else if(room_to_render->type == Start) {
+                            dest_start.x = j*CELL;
+                            dest_start.y = i*CELL;
+                            SDL_RenderCopy(rend, tex_start, NULL, &dest_start);
+                        } else if(room_to_render->type == Goal) {
+                            dest_goal.x = j*CELL;
+                            dest_goal.y = i*CELL;
+                            SDL_RenderCopy(rend, tex_goal, NULL, &dest_goal);
+                        } else {
+                            dest_room.x = j*CELL;
+                            dest_room.y = i*CELL;
+                            SDL_RenderCopy(rend, tex_room, NULL, &dest_room);
+                            for (int k = 0; k < 4; k++) {
+                                if(room_to_render->doors[k].state == 1) {
+                                    switch(room_to_render->doors[k].cardinal) {
+                                        // North = 0, South = 1, East = 2, West = 3
+                                        case 0:
+                                            dest_door.x = j*CELL + 30; // 30 15 8 depende del tamaño de la puerta
+                                            dest_door.y = i*CELL;
+                                            break;
+                                        case 1:
+                                            dest_door.x = j*CELL + 30; // 30 15 8 
+                                            dest_door.y = i*CELL + 45; // 45 20 12 
+                                            break;
+                                        case 2:
+                                            dest_door.x = j*CELL + 50; // 50 30 17 
+                                            dest_door.y = i*CELL + 20; // 20 15 6 
+                                            break;
+                                        case 3:
+                                            dest_door.x = j*CELL; 
+                                            dest_door.y = i*CELL + 20; // 20 10 6 
+                                            break;
+                                        default:
+                                            break;
+                                    }
+                                    SDL_RenderCopy(rend, tex_door, NULL, &dest_door);
+                                }
+                            }
+                        }
+                    }
+                }
+                SDL_RenderCopy(rend, tex_hero, NULL, &dest_hero);
+                break;
+            case 0:
+                SDL_RenderCopy(rend, tex_easy, NULL, &dest_easy);
+                SDL_RenderCopy(rend, tex_medium, NULL, &dest_medium);
+                SDL_RenderCopy(rend, tex_hard, NULL, &dest_hard);
+                SDL_RenderCopy(rend, tex_select, NULL, &dest_select);
+                break;           
+        }
+		
 
 		// activa los buffers dobles para renderizado múltiple
 		SDL_RenderPresent(rend);
@@ -1252,6 +1355,10 @@ int main(){
 	SDL_DestroyTexture(tex_door);
     SDL_DestroyTexture(tex_start);
 	SDL_DestroyTexture(tex_goal);
+    SDL_DestroyTexture(tex_easy);
+    SDL_DestroyTexture(tex_medium);
+    SDL_DestroyTexture(tex_hard);
+	SDL_DestroyTexture(tex_select);
 
 	// destruye el renderizador
 	SDL_DestroyRenderer(rend);
@@ -1264,3 +1371,22 @@ int main(){
 
     return 0;
 }
+
+void pressedButtonMenu(SDL_MouseButtonEvent b, int newN){
+    if(b.button == SDL_BUTTON_LEFT){
+        //N = newN;
+        switch(N){
+            case 10:
+                //DOOR = 10;
+                break;
+            case 20:
+                //DOOR = 22;
+                break;
+            case 30:
+                //DOOR = 23;
+                break;
+        }
+        current_game_state = 1;
+    }
+}
+
