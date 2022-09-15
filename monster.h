@@ -37,12 +37,12 @@ int changeMonsterState(struct monster *m, int state) {
 
 int monsterMove(struct monster *m, int location) {
     changeMonsterState(m, WANDER);
-    printf("Monster %d is moving to %d\n", m->id, location);
+    //printf("Monster %d is moving to %d\n", m->id, location);
     if (m->location == location) {
         return false;
     }
     m->location = location;
-        printf("Monster %d is now in %d\n", m->id, m->location);
+    //printf("Monster %d is now in %d\n", m->id, m->location);
 
     changeMonsterState(m, IDLE);
     return true;

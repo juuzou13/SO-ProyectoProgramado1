@@ -207,8 +207,7 @@ int setOccupied(int id, int state){
     {
         int i = (id - 1) / N;
         int j = (id - 1) % N;
-        struct room *room = &game_map[i][j];
-        room->occupied = state;
+        game_map[i][j].occupied = state;
         return 0;
     }
 }
@@ -241,51 +240,6 @@ struct room *getRoomPointerByID(int id)
         int j = (id - 1) % N;
         return &game_map[i][j];
     }
-}
-
-int getFreeNeighboursNoStartGoal(int id)
-{
-    int found = 0;
-    int tries = 500;
-    struct room *tempRoom = getRoomPointerByID(id);
-
-    while (!found && tries > 0)
-    {
-
-        int k = 0;
-        struct room *tempNeighbour;
-
-        int a[4] = {0,1,2,3};
-
-        for (int i = 0; i < 4; i++)
-        {
-            int j = rand() % 4;
-            int temp = a[i];
-            a[i] = a[j];
-            a[j] = temp;
-        }
-
-        
-        
-        int neighbourID;
-        for (int i = 0; i < 4; i++)
-        {
-            neighbourID = getNeighbour(id, a[i]);
-            if (neighbourID != -1)
-            {
-                //printf("A\n");
-                tempNeighbour = getRoomPointerByID(neighbourID);
-                //printf("B\n");
-                if (tempRoom->doors[i].state == Open && tempNeighbour->occupied == 0 && tempNeighbour->type != Start && tempNeighbour->type != Goal && tempNeighbour->type != Wall)
-                {
-                    found = 1;
-                    return tempNeighbour->id;
-                }
-            }
-        }
-        return -1;
-    }
-    
 }
 
 void printArray(int *array, int size)

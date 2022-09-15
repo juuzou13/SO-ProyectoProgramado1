@@ -7,75 +7,110 @@
 #include <semaphore.h>
 
 pthread_mutex_t lock;
-pthread_barrier_t barrier;
 sem_t semaph;
 
-void *monsterLife(void *m)
-{
-    struct monster *mon = (struct monster *)m;
-    int freeNSize = 0;
-    int freeNeighbours[4];
-    
-    int r;
+int monster0Movements[500];
+int monster0MovementsIndex = 0;
 
-    int d = 15;
+int monster1Movements[500];
+int monster1MovementsIndex = 0;
 
-    while (d > 0)
-    {        
-        
-        r = rand() % 100;
-        if (r >= 50)
-        {
-            //sem_wait(&semaph);
-            //printf("\n\n-------------------------------------------------------------------------\n\n");
-            //printf("Looking for free neighbours of %d in %d...\n\n", mon->id, mon->location);
-            sleep(rand()%2);
+void randomDestination(int * destinations) {
+    int a[4] = {0,1,2,3};
 
-            pthread_mutex_lock(&lock);
-            int loc = getFreeNeighboursNoStartGoal(mon->location);
-            d--;
-            if (loc != -1){
-                setOccupied(mon->location, 0);
-                //printf("Found (%d), a free neighbour of monster %d, located in %d\n", loc, mon->id, mon->location);
-                monsterMove(mon, loc);
-                setOccupied(loc, 1);
-                system("clear");
-                drawTemporalMap();
-                
-            }
-            else
-            {
-                //printf("No free neighbours found for monster %d, located in %d\n", mon->id, mon->location);
-            }
-            //printf("\n\n-------------------------------------------------------------------------\n\n");
-            //sem_post(&semaph);
-            
-
-            if(d==0){
-                setOccupied(mon->location, 0);
-            }
-            pthread_mutex_unlock(&lock);
-            
-
-            //pthread_yield();
-
-
-            
-        }else{
-            
-        }
-        
+    for (int i = 0; i < 4; i++)
+    {
+        int j = rand() % 4;
+        int temp = a[i];
+        a[i] = a[j];
+        a[j] = temp;
     }
 
-    
-
-    pthread_exit(0);
-
-    
+    memcpy(destinations, a, sizeof(a));
 }
 
-int main()
+int getNextRoomForMonster(int id)
 {
+    int currentIndex = 0;
+
+    struct room *tempRoom = getRoomPointerByID(id);
+    struct room *tempNeighbour;
+    int destinations[4];
+
+    randomDestination(destinations);
+            
+    int neighbourID;
+    for (int i = 0; i < 4; i++)
+    {
+        currentIndex = destinations[i];
+        neighbourID = getNeighbour(id, currentIndex);
+        if (neighbourID != -1)
+        {
+
+            pthread_mutex_lock(&lock);
+            tempNeighbour = getRoomPointerByID(neighbourID);
+            pthread_mutex_unlock(&lock);
+
+            if (tempRoom->doors[currentIndex].state == Open && tempNeighbour->occupied == 0 && tempNeighbour->type != Start && tempNeighbour->type != Goal && tempNeighbour->type != Wall)
+            {
+                return neighbourID;
+            }
+        }
+    }
+    return -1;
+
+}
+
+void * monsterLife(void * m){
+    struct monster * mon = (struct monster *) m;
+    int freeNSize = 0;
+    int freeNeighbours[4];
+    //printf("\nMonster %d is alive\n", mon->id);
+    //while(mon->hp != 0){
+    int r; 
+
+    while(mon->hp > 0){
+        //printf("\nLooking for free neighbours of %d in %d\n", mon->id, mon->location);
+        r = rand() % 100;
+        int loc = getNextRoomForMonster(mon->location);
+
+        if(loc!=-1){
+            //printf("Found (%d), a free neighbour of monster %d, located in %d\n", loc, mon->id, mon->location);
+            setOccupied(mon->location, 0);
+            monsterMove(mon, loc);
+            setOccupied(loc, 1);
+            if(mon->id==0){
+                monster0Movements[monster0MovementsIndex] = loc;
+                monster0MovementsIndex++;
+            }else if(mon->id==1){
+                monster1Movements[monster1MovementsIndex] = loc;
+                monster1MovementsIndex++;
+            }
+        }else{
+            //printf("No free neighbours found for monster %d, located in %d\n", mon->id, mon->location);
+            changeMonsterState(mon, IDLE);
+        }            
+        //printf("\n\n-------------------------------------------------------------------------\n\n");
+        pthread_mutex_lock(&lock);
+        system("clear");
+        drawTemporalMap();
+
+        pthread_mutex_unlock(&lock);
+
+        printf("Monster 0 path:\n");
+        printArray(monster0Movements, monster0MovementsIndex);   
+        printf("Monster 1 path:\n");
+        printArray(monster1Movements, monster1MovementsIndex);
+        //sem_post(&semaph);
+        sleep((rand()%3)+1);
+    }
+    
+    printf("Monster %d is dead\n", mon->id);
+    sleep(3);
+    pthread_exit(0);
+}
+
+int main(){
 
     srand(time(NULL));
 
@@ -110,7 +145,7 @@ int main()
         printf("----------------------------------");
         printf("\n");
 
-        
+        // printf("Input %s\n", input);
 
         input_valid = atoi(input);
 
@@ -139,55 +174,53 @@ int main()
         N = HARD;
         break;
     }
-
-    while (generateMap(N) == -1)
-    {
+    
+    while(generateMap(N)==-1){
         printf("Reintentando generar mapa...\n");
     }
 
-    int monsterCount = N / 2;
-
-
-    
-
-    sem_init(&semaph, 0, 3);
     pthread_mutex_init(&lock, NULL);
 
-    pthread_t *monsterThreads;
-    monsterThreads = (pthread_t *)malloc(sizeof(pthread_t) * monsterCount);
+    int monsterCount = N/2;
+
+    //sem_init(&semaph,0,monsterCount);
+
+    pthread_t * monsterThreads;
+    monsterThreads = (pthread_t *)malloc(sizeof(pthread_t)*monsterCount);
 
     struct monster monsters[monsterCount];
 
-    
-    for (int m; m < monsterCount; m++)
-    {
-        
+    int freeRooms[N];
+    int freeRoomsSize = 0;
+
+    //printf("Looking for free rooms...\n");
+
+    //getMapDetails();
+
+    for(int m; m < monsterCount; m++){
+        //printf("Monster %d is alive OUT\n", m);
         monsters[m].id = m;
         monsters[m].hp = 3;
         monsters[m].atk = 1;
         monsters[m].state = IDLE;
         monsters[m].location = getFreeRooms();
         printf("Room %d is occupied by monster %d\n", monsters[m].location, monsters[m].id);
-        
+        //getRoomDetailsByID(monsters[m].location);
         setOccupied(monsters[m].location, 1);
 
         pthread_create(&monsterThreads[m], NULL, monsterLife, &monsters[m]);
+        
     }
 
-    for (int i = 0; i < monsterCount; i++)
-    {
+    for(int i = 0; i < monsterCount; i++){
         pthread_join(monsterThreads[i], NULL);
     }
 
-    system("clear");
-    drawTemporalMap();
-
     printf("Game Over\n");
 
-    
-
-    sem_destroy(&semaph);
     pthread_mutex_destroy(&lock);
 
+    //sem_destroy(&semaph);
+    
     return 0;
 }
