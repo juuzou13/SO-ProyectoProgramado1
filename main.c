@@ -29,7 +29,7 @@ void randomDestination(int * destinations) {
     memcpy(destinations, a, sizeof(a));
 }
 
-int getNextRoomForMonster(int id)
+int getNextRoomForMonster(int id, int monsterID)
 {
     int currentIndex = 0;
     int canProceedToThisRoom = 0;
@@ -57,6 +57,12 @@ int getNextRoomForMonster(int id)
                     canProceedToThisRoom = 1;
                     setOccupied(id, 0);
                     setOccupied(neighbourID, 1);
+                    setMonsterID(id, -1);
+                    setMonsterID(neighbourID, monsterID);
+                    getRoomDetailsByID(id);
+                    getRoomDetailsByID(neighbourID);
+                    printf("\nMonster %d moved from room %d to room %d\n", monsterID, id, neighbourID);
+                    sleep(120);
                 }
                 pthread_mutex_unlock(&lock);
             }
@@ -83,12 +89,10 @@ void * monsterLife(void * m){
     while(mon->hp > 0){
         //printf("\nLooking for free neighbours of %d in %d\n", mon->id, mon->location);
         r = rand() % 100;
-        int loc = getNextRoomForMonster(mon->location);
+        int loc = getNextRoomForMonster(mon->location, mon->id);
 
         if(loc!=-1){ //Si hay una habitacion libre
-            // setOccupied(mon->location, 0);
             monsterMove(mon, loc);
-            // setOccupied(loc, 1);
             //Esto es temporal
             if(mon->id==0){
                 monster0Movements[monster0MovementsIndex] = loc;
@@ -124,6 +128,7 @@ void * monsterLife(void * m){
 
     pthread_mutex_lock(&lock); //Aqui se libera la habitación en la que el monstruo murio
     setOccupied(mon->location, 0);
+    setMonsterID(mon->location, -1);
     pthread_mutex_unlock(&lock);
 
     sleep(3);
@@ -222,6 +227,7 @@ int main(){
         printf("Room %d is occupied by monster %d\n", monsters[m].location, monsters[m].id);
         //getRoomDetailsByID(monsters[m].location);
         setOccupied(monsters[m].location, 1);
+        setMonsterID(monsters[m].location, monsters[m].id);
 
         pthread_create(&monsterThreads[m], NULL, monsterLife, &monsters[m]);
         
