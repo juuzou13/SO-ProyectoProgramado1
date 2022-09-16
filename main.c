@@ -9,6 +9,7 @@
 pthread_mutex_t lock;
 sem_t semaph;
 
+
 int monster0Movements[500];
 int monster0MovementsIndex = 0;
 
@@ -114,9 +115,17 @@ void * monsterLife(void * m){
         //* .Todo esto es temporal
             
             
-            //pthread_mutex_lock(&lock);
-            //getMapDetails();
-            //pthread_mutex_unlock(&lock);
+            pthread_mutex_lock(&lock);
+            system("clear");
+            drawTemporalMap();
+            pthread_mutex_unlock(&lock);
+
+            printf("Monster 0 path:\n");
+            printArray(monster0Movements, monster0MovementsIndex);   
+            printf("Monster 1 path:\n");
+            printArray(monster1Movements, monster1MovementsIndex);
+            printf("Hero path:\n");
+            printArray(heroMovements, heroMovementsIndex);
 
             //sleep(25);
 
@@ -149,6 +158,7 @@ int openChest(struct hero *h){
         setRoomChestState(h->location, 0);
         return 1;
     } else {
+        printf("There is no chest in this room\n");
         return 0;
     }
 }
@@ -166,8 +176,6 @@ void* heroLife(void* h)
     getRoomPointerByID(int roomID)
     isDoorOpen(int roomID, int direction)
     */
-
-   printf("Holaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n");
 
     while(hero->hp != 0){
 
@@ -256,25 +264,20 @@ void* heroLife(void* h)
             }
         }else if(input == ' '){
             printf("Hero is attacking\n");
+            int monsterID = getRoomPointerByID(hero->location)->monsterInRoomID;
+            if (monsterID != -1)
+            {
+                monster *tempMonster = getMonsterPointerByID(monsterID);
+                pthread_mutex_lock(&lock);
+                attackMonster(hero, monsterID);
+                pthread_mutex_unlock(&lock);
+            }
+            
         }else if(input == 'e'){
             openChest(hero);
         }
 
-        pthread_mutex_lock(&lock);
-        drawTemporalMap();
-        pthread_mutex_unlock(&lock);
-
-        printf("Hero has %d hp\n", hero->hp);
-
-        printf("Monster 0 path:\n");
-        printArray(monster0Movements, monster0MovementsIndex);   
-        printf("Monster 1 path:\n");
-        printArray(monster1Movements, monster1MovementsIndex);
-        printf("Hero path:\n");
-        printArray(heroMovements, heroMovementsIndex);
-
         sleep(0.1);
-
 
         // // ---------------------------------------------------------
     }
@@ -380,9 +383,6 @@ int main(){
     player->atk = 1;
     player->location = start;
     setHeroInRoom(start, 1);
-
-    getMapDetails();
-    return 0;
 
     pthread_t * heroThread = (pthread_t *) malloc(sizeof(pthread_t));
     pthread_t * heroHp = (pthread_t *) malloc(sizeof(pthread_t));
