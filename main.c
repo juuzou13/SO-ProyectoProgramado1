@@ -5,6 +5,7 @@
 #include "global.h"
 #include <pthread.h>
 #include <semaphore.h>
+#include <ncurses.h>
 
 pthread_mutex_t lock;
 sem_t semaph;
@@ -136,6 +137,23 @@ void * monsterLife(void * m){
     pthread_exit(0);
 }
 
+int openChest(struct hero *h){
+    if (getRoomType(h->location) == 1 && getRoomChestState(h->location) == 1) {  
+        int r = rand() % 2;
+        if (r == 0) {
+            h->atk = h->atk + 1;
+            printf("Hero opened a chest and got +1 attack, actual attack: %d\n", h->atk);
+        } else {
+            h->hp = h->hp + 1;
+            printf("Hero has %d hp\n", h->hp);
+        }
+        setRoomChestState(h->location, 0);
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 void* heroLife(void* h)
 {
     struct hero * hero = (struct hero *) h;
@@ -154,11 +172,8 @@ void* heroLife(void* h)
 
     while(hero->hp != 0){
 
-        printf("Hola1111\n");
-
         char input = getchar();
-
-
+        while ('\n' != getchar());
 
         if(input == 'w'){
             if (isDoorOpen(hero->location, 0))
@@ -203,25 +218,6 @@ void* heroLife(void* h)
                 printf("Door is closed\n");
             }
         }else if(input == 's'){
-            if (isDoorOpen(hero->location, 2))
-            {
-                int neighbourID = getNeighbour(hero->location, 2);
-                struct room *tempNeighbour = getRoomPointerByID(neighbourID);
-
-                pthread_mutex_lock(&lock);
-                if(tempNeighbour->occupiedByMonster == 0 && tempNeighbour->type != Wall){
-                    setHeroInRoom(hero->location, 0);
-                    setHeroInRoom(neighbourID, 1);
-                    heroMove(hero, neighbourID);
-                    printf("Hero moved to room %d\n", hero->location);
-                }else{
-                    printf("Hero can't move to room %d\n", neighbourID);
-                }
-                pthread_mutex_unlock(&lock);
-            }else{
-                printf("Door is closed\n");
-            }
-        }else if(input == 'd'){
             if (isDoorOpen(hero->location, 1))
             {
                 int neighbourID = getNeighbour(hero->location, 1);
@@ -240,10 +236,32 @@ void* heroLife(void* h)
             }else{
                 printf("Door is closed\n");
             }
+        }else if(input == 'd'){
+            if (isDoorOpen(hero->location, 2))
+            {
+                int neighbourID = getNeighbour(hero->location, 2);
+                struct room *tempNeighbour = getRoomPointerByID(neighbourID);
+
+                pthread_mutex_lock(&lock);
+                if(tempNeighbour->occupiedByMonster == 0 && tempNeighbour->type != Wall){
+                    setHeroInRoom(hero->location, 0);
+                    setHeroInRoom(neighbourID, 1);
+                    heroMove(hero, neighbourID);
+                    printf("Hero moved to room %d\n", hero->location);
+                }else{
+                    printf("Hero can't move to room %d\n", neighbourID);
+                }
+                pthread_mutex_unlock(&lock);
+            }else{
+                printf("Door is closed\n");
+            }
+        }else if(input == ' '){
+            printf("Hero is attacking\n");
+        }else if(input == 'e'){
+            openChest(hero);
         }
 
         pthread_mutex_lock(&lock);
-        system("clear");
         drawTemporalMap();
         pthread_mutex_unlock(&lock);
 
@@ -363,6 +381,9 @@ int main(){
     player->atk = 1;
     player->location = start;
     setHeroInRoom(start, 1);
+
+    getMapDetails();
+    return 0;
 
     pthread_t * heroThread = (pthread_t *) malloc(sizeof(pthread_t));
     pthread_t * heroHp = (pthread_t *) malloc(sizeof(pthread_t));

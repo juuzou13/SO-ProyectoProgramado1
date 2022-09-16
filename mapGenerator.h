@@ -157,6 +157,7 @@ void getRoomDetails(struct room *room)
     printf("Room isHeroInRoom: %d\n", room->isHeroInRoom);
     printf("Room occupiedByMonster: %d\n", room->occupiedByMonster);
     printf("Room treasure: %d\n", room->treasure);
+    printf("Room trap: %d\n", room->trap);
     printf("Room monsterInRoomID: %d\n", room->monsterInRoomID);
     printf("\n");
 }
@@ -400,32 +401,44 @@ void drawTemporalMap()
             {
                 spaces2 = "";
             }
+            if ((room->type == Treasure && room->treasure == 0) || (room->type == Trap && room->trap == 0)) {
+                printf("%s" GREEN "|" DEFAULT, spaces);
+            }
+            else if (room->type == Treasure && room->treasure == 1) {
+                printf("%s" YELLOW "|" DEFAULT, spaces);
+            }
+            else if (room->type == Trap && room->trap == 1) {
+                printf("%s" RED "|" DEFAULT, spaces);
+            } else {
+                printf("%s|", spaces);
+            }
             if (room->isHeroInRoom == 1 && room->occupiedByMonster == 1)
             {
-                printf("%s|" YELLOW "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
+                printf(YELLOW "%d" DEFAULT ") %s%s", room->id, openDoors, spaces2);
             }
             else if (room->isHeroInRoom == 1)
             {
-                printf("%s|" MAGENTA "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
+                printf(MAGENTA "%d" DEFAULT ") %s%s", room->id, openDoors, spaces2);
             }
             else if (room->type == Start)
             {
                 roomColor = GREEN;
-                printf("%s|" GREEN "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
+                printf(GREEN "%d" DEFAULT ") %s%s", room->id, openDoors, spaces2);
             }
             else if (room->type == Goal)
             {
                 roomColor = RED;
-                printf("%s|" RED "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
+                printf(RED "%d" DEFAULT ") %s%s", room->id, openDoors, spaces2);
             }
             else if (room->occupiedByMonster == 1)
             {
-                printf("%s|" CYAN "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
+                printf(CYAN "%d" DEFAULT ") %s%s", room->id, openDoors, spaces2);
             }
             else
             {
-                printf("%s|" DEFAULT "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
+                printf(DEFAULT "%d" DEFAULT ") %s%s", room->id, openDoors, spaces2);
             }
+
 
             for (int k = 0; k < 4; k++)
             {
@@ -610,12 +623,14 @@ void createMap(int startRoomID, int total)
             }
 
             room->type = room->id == startRoomID ? Start : Wall;
+            if(room->type == Wall) {
+                room->trap = 0;
+                room->treasure = 0;
+            }
             createDoors(room->doors);
             room->openDoorsLeft = getMaxNeighbours(room->id);
             room->isHeroInRoom = false;
             room->occupiedByMonster = room->type == Start ? true : false;
-            room->treasure = false;
-            room->trap = false;
             room->monsterInRoomID = -1;
 
             game_map[i][j] = *room;
@@ -643,6 +658,24 @@ int canThisDoorBeOpened(int currentRoomID, int doorDirection)
     }
 
     return true;
+}
+
+int getRoomType(int id)
+{
+    struct room *room = getRoomPointerByID(id);
+    return room->type;
+}
+
+int setRoomChestState(int id, int state)
+{
+    struct room *room = getRoomPointerByID(id);
+    room->treasure = state;
+}
+
+int getRoomChestState(int id)
+{
+    struct room *room = getRoomPointerByID(id);
+    return room->treasure;
 }
 
 int generateMap()
@@ -876,6 +909,12 @@ int generateMap()
             camino[caminoSize++] = connectedRoomID;
 
             room->type = getRandomRoomType();
+            if (room->type == Treasure){
+                room->treasure = 1;
+            }
+            else if (room->type == Trap){
+                room->trap = 1;
+            }
 
             openDoor(connectedRoomID, directionToConnect);
             deadEnds--;
@@ -884,7 +923,6 @@ int generateMap()
         }
         else
         {
-
             currentRoom->type = Wall;
         }
 
