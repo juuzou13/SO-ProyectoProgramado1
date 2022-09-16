@@ -53,7 +53,7 @@ int getNextRoomForMonster(int id)
                 //! Region critica
                 pthread_mutex_lock(&lock); //Aqui el hilo monstruo obtiene el estado de una habitacion de manera sincronizada y revisa si esta ocupada o no
                 tempNeighbour = getRoomPointerByID(neighbourID); 
-                if(tempNeighbour->occupied == 0 && tempNeighbour->type != Start && tempNeighbour->type != Goal && tempNeighbour->type != Wall){
+                if(tempNeighbour->occupiedByMonster == 0 && tempNeighbour->type != Start && tempNeighbour->type != Goal && tempNeighbour->type != Wall){
                     canProceedToThisRoom = 1;
                     setOccupied(id, 0);
                     setOccupied(neighbourID, 1);

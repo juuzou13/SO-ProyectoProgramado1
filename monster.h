@@ -27,12 +27,11 @@ int randomWaitTime(){
     return 0;
 }
 
-int changeMonsterState(struct monster *m, int state) {
+void changeMonsterState(struct monster *m, int state) {
     m->state = state;
-    if(state == IDLE) {
+    if(state == IDLE){
         randomWaitTime();
     }
-    return m->state;
 }
 
 int monsterMove(struct monster *m, int location) {
@@ -48,9 +47,18 @@ int monsterMove(struct monster *m, int location) {
     return true;
 }
 
-int monsterAttack(struct monster *m, struct hero *h) {
+int isMonsterInHerosLocation(struct monster *m, struct hero *h) {
+    if (m->location == h->location) {
+        return true;
+    }
+    return false;
+}
+
+int attackHero(struct monster *m, struct hero *h) {
     changeMonsterState(m, ATTACK);
+    printf("Monster %d is attacking hero %d\n", m->id, h->id);
     h->hp -= m->atk;
-    printf("Monster %d attacked hero for %d damage", m->id, m->atk);
+    printf("Hero %d has %d hp left\n", h->id, h->hp);
     changeMonsterState(m, IDLE);
+    return true;
 }

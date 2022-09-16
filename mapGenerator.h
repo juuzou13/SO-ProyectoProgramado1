@@ -54,12 +54,14 @@ struct room
     struct door doors[4];
     int openDoorsLeft;
 
-    int discovered;
-    int occupied;
-
     int treasure;
     int trap;
-    int monster;
+
+    int occupiedByMonster;
+    int monsterInRoomID;
+
+    int isHeroInRoom;
+
 };
 
 short N;
@@ -150,10 +152,10 @@ void getRoomDetails(struct room *room)
     }
 
     printf("Room open doors left: %d\n", room->openDoorsLeft);
-    printf("Room discovered: %d\n", room->discovered);
-    printf("Room occupied: %d\n", room->occupied);
+    printf("Room isHeroInRoom: %d\n", room->isHeroInRoom);
+    printf("Room occupiedByMonster: %d\n", room->occupiedByMonster);
     printf("Room treasure: %d\n", room->treasure);
-    printf("Room monster: %d\n", room->monster);
+    printf("Room monsterInRoomID: %d\n", room->monsterInRoomID);
     printf("\n");
 }
 
@@ -194,8 +196,38 @@ int setOccupied(int id, int state)
     {
         int i = (id - 1) / N;
         int j = (id - 1) % N;
-        game_map[i][j].occupied = state;
+        game_map[i][j].occupiedByMonster = state;
         return 0;
+    }
+}
+
+int setMonsterID(int roomID, int monsterID)
+{
+    if (roomID > N * N || roomID < 1)
+    {
+        printf("No existe habitacion con dicho id.\n");
+        return -1;
+    }
+    else
+    {
+        int i = (roomID - 1) / N;
+        int j = (roomID - 1) % N;
+        game_map[i][j].monsterInRoomID = monsterID;
+        return 0;
+    }
+}
+
+int isHeroInRoom(int roomID){
+    if (roomID > N * N || roomID < 1)
+    {
+        printf("No existe habitacion con dicho id.\n");
+        return -1;
+    }
+    else
+    {
+        int i = (roomID - 1) / N;
+        int j = (roomID - 1) % N;
+        return game_map[i][j].isHeroInRoom;
     }
 }
 
@@ -210,7 +242,7 @@ int getFreeRooms()
         int i = rand() % N;
         int j = rand() % N;
 
-        if (game_map[i][j].type != Wall && game_map[i][j].occupied == 0 && game_map[i][j].type != Start && game_map[i][j].type != Goal)
+        if (game_map[i][j].type != Wall && game_map[i][j].occupiedByMonster == 0 && game_map[i][j].type != Start && game_map[i][j].type != Goal)
         {
             found = 1;
             return game_map[i][j].id;
@@ -350,7 +382,7 @@ void drawTemporalMap()
             }
             else
             {
-                if (room->occupied == 1)
+                if (room->occupiedByMonster == 1)
                 {
                     printf("%s|" CYAN "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
                 }
@@ -545,10 +577,11 @@ void createMap(int startRoomID, int total)
             room->type = room->id == startRoomID ? Start : Wall;
             createDoors(room->doors);
             room->openDoorsLeft = getMaxNeighbours(room->id);
-            room->discovered = false;
-            room->occupied = room->type == Start ? true : false;
+            room->isHeroInRoom = false;
+            room->occupiedByMonster = room->type == Start ? true : false;
             room->treasure = false;
-            room->monster = false;
+            room->trap = false;
+            room->monsterInRoomID = -1;
 
             game_map[i][j] = *room;
         }
@@ -830,7 +863,7 @@ int generateMap()
 
     struct room *startRoom = getRoomPointerByID(startRoomID);
     startRoom->type = Start;
-    startRoom->occupied = 0;
+    startRoom->occupiedByMonster = 0;
 
     drawTemporalMap();
 
