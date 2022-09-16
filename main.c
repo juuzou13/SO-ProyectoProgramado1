@@ -51,10 +51,12 @@ int getNextRoomForMonster(int id)
             if (tempRoom->doors[currentIndex].state == Open)
             {
                 //! Region critica
-                pthread_mutex_lock(&lock); //Aqui el hilo monstruo obtiene el estado de una habitacion de manera sincornizada y revisa si esta ocupada o no
+                pthread_mutex_lock(&lock); //Aqui el hilo monstruo obtiene el estado de una habitacion de manera sincronizada y revisa si esta ocupada o no
                 tempNeighbour = getRoomPointerByID(neighbourID); 
                 if(tempNeighbour->occupied == 0 && tempNeighbour->type != Start && tempNeighbour->type != Goal && tempNeighbour->type != Wall){
                     canProceedToThisRoom = 1;
+                    setOccupied(id, 0);
+                    setOccupied(neighbourID, 1);
                 }
                 pthread_mutex_unlock(&lock);
             }
@@ -84,9 +86,9 @@ void * monsterLife(void * m){
         int loc = getNextRoomForMonster(mon->location);
 
         if(loc!=-1){ //Si hay una habitacion libre
-            setOccupied(mon->location, 0);
+            // setOccupied(mon->location, 0);
             monsterMove(mon, loc);
-            setOccupied(loc, 1);
+            // setOccupied(loc, 1);
             //Esto es temporal
             if(mon->id==0){
                 monster0Movements[monster0MovementsIndex] = loc;
@@ -114,11 +116,16 @@ void * monsterLife(void * m){
             printf("Monster 1 path:\n");
             printArray(monster1Movements, monster1MovementsIndex);
             //sem_post(&semaph);
-            sleep((rand()%3)+1);
+            sleep((rand()%2)+1);
         // ---------------------------------------------------------
     }
     
     printf("Monster %d is dead\n", mon->id);
+
+    pthread_mutex_lock(&lock); //Aqui se libera la habitación en la que el monstruo murio
+    setOccupied(mon->location, 0);
+    pthread_mutex_unlock(&lock);
+
     sleep(3);
     pthread_exit(0);
 }
@@ -193,7 +200,7 @@ int main(){
 
     pthread_mutex_init(&lock, NULL);
 
-    int monsterCount = N/2;
+    int monsterCount = 2;
 
     //sem_init(&semaph,0,monsterCount);
 
