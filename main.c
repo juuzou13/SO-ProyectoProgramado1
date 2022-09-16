@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "mapGenerator.h"
-#include "monster.h"
+#include "global.h"
 #include <pthread.h>
 #include <semaphore.h>
 
@@ -14,6 +14,9 @@ int monster0MovementsIndex = 0;
 
 int monster1Movements[500];
 int monster1MovementsIndex = 0;
+
+int heroMovements[500];
+int heroMovementsIndex = 0;
 
 void randomDestination(int * destinations) {
     int a[4] = {0,1,2,3};
@@ -49,7 +52,7 @@ int getNextRoomForMonster(int id, int monsterID)
         if (neighbourID != -1)
         {
             if (tempRoom->doors[currentIndex].state == Open)
-            {
+            {   
                 //! Region critica
                 pthread_mutex_lock(&lock); //Aqui el hilo monstruo obtiene el estado de una habitacion de manera sincronizada y revisa si esta ocupada o no
                 tempNeighbour = getRoomPointerByID(neighbourID); 
@@ -59,10 +62,9 @@ int getNextRoomForMonster(int id, int monsterID)
                     setOccupied(neighbourID, 1);
                     setMonsterID(id, -1);
                     setMonsterID(neighbourID, monsterID);
-                    getRoomDetailsByID(id);
-                    getRoomDetailsByID(neighbourID);
-                    printf("\nMonster %d moved from room %d to room %d\n", monsterID, id, neighbourID);
-                    sleep(120);
+                    //getRoomDetailsByID(id);
+                    //getRoomDetailsByID(neighbourID);
+                    //printf("\nMonster %d moved from room %d to room %d\n", monsterID, id, neighbourID);
                 }
                 pthread_mutex_unlock(&lock);
             }
@@ -86,7 +88,7 @@ void * monsterLife(void * m){
     //while(mon->hp != 0){
     int r; 
 
-    while(mon->hp > 0){
+    while(mon->hp != 0){
         //printf("\nLooking for free neighbours of %d in %d\n", mon->id, mon->location);
         r = rand() % 100;
         int loc = getNextRoomForMonster(mon->location, mon->id);
@@ -107,18 +109,17 @@ void * monsterLife(void * m){
         }else{ //Si no hay habitaciones libres, el monstruo se queda quieto
             changeMonsterState(mon, IDLE);
             //printf("No free neighbours found for monster %d, located in %d\n", mon->id, mon->location);
-        }       
+        }
 
-        // .Todo esto es temporal
-            pthread_mutex_lock(&lock);
-            system("clear");
-            drawTemporalMap();
-            pthread_mutex_unlock(&lock);
+        //* .Todo esto es temporal
+            
+            
+            //pthread_mutex_lock(&lock);
+            //getMapDetails();
+            //pthread_mutex_unlock(&lock);
 
-            printf("Monster 0 path:\n");
-            printArray(monster0Movements, monster0MovementsIndex);   
-            printf("Monster 1 path:\n");
-            printArray(monster1Movements, monster1MovementsIndex);
+            //sleep(25);
+
             //sem_post(&semaph);
             sleep((rand()%2)+1);
         // ---------------------------------------------------------
@@ -132,6 +133,153 @@ void * monsterLife(void * m){
     pthread_mutex_unlock(&lock);
 
     sleep(3);
+    pthread_exit(0);
+}
+
+void* heroLife(void* h)
+{
+    struct hero * hero = (struct hero *) h;
+    int freeNSize = 0;
+    int freeNeighbours[4];
+    //printf("\nHero is alive\n");
+    //while(her->hp != 0){
+
+    /* IMPORTANTE FUNCIONES
+    getNeighbour(int roomID, int direction)
+    getRoomPointerByID(int roomID)
+    isDoorOpen(int roomID, int direction)
+    */
+
+   printf("Holaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n");
+
+    while(hero->hp != 0){
+
+        printf("Hola1111\n");
+
+        char input = getchar();
+
+
+
+        if(input == 'w'){
+            if (isDoorOpen(hero->location, 0))
+            {
+                int neighbourID = getNeighbour(hero->location, 0);
+                struct room *tempNeighbour = getRoomPointerByID(neighbourID);
+
+                pthread_mutex_lock(&lock);
+                if(tempNeighbour->occupiedByMonster == 0 && tempNeighbour->type != Wall){
+                    setHeroInRoom(hero->location, 0);
+                    setHeroInRoom(neighbourID, 1);
+                    heroMove(hero, neighbourID);
+
+                    heroMovements[heroMovementsIndex] = neighbourID;
+                    heroMovementsIndex++;
+
+                    printf("Hero moved to room %d\n", hero->location);
+                }else{
+                    printf("Hero can't move to room %d\n", neighbourID);
+                }
+                pthread_mutex_unlock(&lock);
+            }else{
+                printf("Door is closed\n");
+            }
+        }else if(input == 'a'){
+            if (isDoorOpen(hero->location, 3))
+            {
+                int neighbourID = getNeighbour(hero->location, 3);
+                struct room *tempNeighbour = getRoomPointerByID(neighbourID);
+
+                pthread_mutex_lock(&lock);
+                if(tempNeighbour->occupiedByMonster == 0 && tempNeighbour->type != Wall){
+                    setHeroInRoom(hero->location, 0);
+                    setHeroInRoom(neighbourID, 1);
+                    heroMove(hero, neighbourID);
+                    printf("Hero moved to room %d\n", hero->location);
+                }else{
+                    printf("Hero can't move to room %d\n", neighbourID);
+                }
+                pthread_mutex_unlock(&lock);
+            }else{
+                printf("Door is closed\n");
+            }
+        }else if(input == 's'){
+            if (isDoorOpen(hero->location, 2))
+            {
+                int neighbourID = getNeighbour(hero->location, 2);
+                struct room *tempNeighbour = getRoomPointerByID(neighbourID);
+
+                pthread_mutex_lock(&lock);
+                if(tempNeighbour->occupiedByMonster == 0 && tempNeighbour->type != Wall){
+                    setHeroInRoom(hero->location, 0);
+                    setHeroInRoom(neighbourID, 1);
+                    heroMove(hero, neighbourID);
+                    printf("Hero moved to room %d\n", hero->location);
+                }else{
+                    printf("Hero can't move to room %d\n", neighbourID);
+                }
+                pthread_mutex_unlock(&lock);
+            }else{
+                printf("Door is closed\n");
+            }
+        }else if(input == 'd'){
+            if (isDoorOpen(hero->location, 1))
+            {
+                int neighbourID = getNeighbour(hero->location, 1);
+                struct room *tempNeighbour = getRoomPointerByID(neighbourID);
+
+                pthread_mutex_lock(&lock);
+                if(tempNeighbour->occupiedByMonster == 0 && tempNeighbour->type != Wall){
+                    setHeroInRoom(hero->location, 0);
+                    setHeroInRoom(neighbourID, 1);
+                    heroMove(hero, neighbourID);
+                    printf("Hero moved to room %d\n", hero->location);
+                }else{
+                    printf("Hero can't move to room %d\n", neighbourID);
+                }
+                pthread_mutex_unlock(&lock);
+            }else{
+                printf("Door is closed\n");
+            }
+        }
+
+        pthread_mutex_lock(&lock);
+        system("clear");
+        drawTemporalMap();
+        pthread_mutex_unlock(&lock);
+
+        printf("Hero has %d hp\n", hero->hp);
+
+        printf("Monster 0 path:\n");
+        printArray(monster0Movements, monster0MovementsIndex);   
+        printf("Monster 1 path:\n");
+        printArray(monster1Movements, monster1MovementsIndex);
+        printf("Hero path:\n");
+        printArray(heroMovements, heroMovementsIndex);
+
+        sleep(0.1);
+
+
+        // // ---------------------------------------------------------
+    }
+    
+    printf("Hero is dead\n");
+
+    pthread_mutex_lock(&lock); //Aqui se libera la habitación en la que el monstruo murio
+    setOccupied(hero->location, 0);
+    setMonsterID(hero->location, -1);
+    pthread_mutex_unlock(&lock);
+
+    sleep(3);
+    pthread_exit(0);
+}
+
+void* observerHpHero(void* h) {
+    struct hero * hero = (struct hero *) h;
+    while(hero->hp != 0){
+        sleep(1);
+        // printf("Hero has %d hp\n", hero->hp);
+    }
+    printf("Hero is dead\n");
     pthread_exit(0);
 }
 
@@ -198,8 +346,11 @@ int main(){
             N = HARD;
             break;
     }
+
+    int start=generateMap(N);
     
-    while(generateMap(N)==-1){
+    while(start==-1){
+        start=generateMap(N);
         printf("Reintentando generar mapa...\n");
     }
 
@@ -207,6 +358,16 @@ int main(){
 
     int monsterCount = 2;
 
+    struct hero * player = (struct hero *) malloc(sizeof(struct hero));
+    player->hp = 5;
+    player->atk = 1;
+    player->location = start;
+    setHeroInRoom(start, 1);
+
+    pthread_t * heroThread = (pthread_t *) malloc(sizeof(pthread_t));
+    pthread_t * heroHp = (pthread_t *) malloc(sizeof(pthread_t));
+
+    //getRoomDetailsByID(start);
     //sem_init(&semaph,0,monsterCount);
 
     pthread_t * monsterThreads;
@@ -233,9 +394,15 @@ int main(){
         
     }
 
-    for(int i = 0; i < monsterCount; i++){
+    pthread_create(&heroThread, NULL, heroLife, player);
+    pthread_create(&heroHp, NULL, observerHpHero, player);
+
+    for (int i = 0; i < monsterCount; i++)
+    {
         pthread_join(monsterThreads[i], NULL);
     }
+
+    pthread_join(heroHp, NULL);
 
     printf("Game Over\n");
 
@@ -243,5 +410,7 @@ int main(){
 
     //sem_destroy(&semaph);
     
+    getMapDetails();
+
     return 0;
 }

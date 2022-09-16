@@ -8,11 +8,13 @@
 #define false 0
 
 #define RED "\x1b[31m"
-#define GREEN "\x1b[32m"
-#define YELLOW "\x1b[33m"
-#define BLUE "\x1b[34m"
-#define MAGENTA "\x1b[35m"
 #define CYAN "\x1b[36m"
+#define GREEN "\x1b[32m"
+
+#define YELLOW "\x1b[33m"
+#define MAGENTA "\x1b[35m"
+#define BLUE "\x1b[34m"
+
 #define DEFAULT "\x1b[0m"
 
 #define EASY 10
@@ -217,6 +219,22 @@ int setMonsterID(int roomID, int monsterID)
     }
 }
 
+int setHeroInRoom(int id, int state)
+{
+    if (id > N * N || id < 1)
+    {
+        printf("No existe habitacion con dicho id.\n");
+        return -1;
+    }
+    else
+    {
+        int i = (id - 1) / N;
+        int j = (id - 1) % N;
+        game_map[i][j].isHeroInRoom = state;
+        return 0;
+    }
+}
+
 int isHeroInRoom(int roomID){
     if (roomID > N * N || roomID < 1)
     {
@@ -302,6 +320,19 @@ int isInArray(int *array, int size, int element)
     return false;
 }
 
+isDoorOpen(int id, int cardinal)
+{
+    int i = (id - 1) / N;
+    int j = (id - 1) % N;
+
+    if (game_map[i][j].doors[cardinal].state == Open)
+    {
+        return true;
+    }
+
+    return false;
+}
+
 void drawTemporalMap()
 {
     printf("\n");
@@ -369,8 +400,15 @@ void drawTemporalMap()
             {
                 spaces2 = "";
             }
-
-            if (room->type == Start)
+            if (room->isHeroInRoom == 1 && room->occupiedByMonster == 1)
+            {
+                printf("%s|" YELLOW "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
+            }
+            else if (room->isHeroInRoom == 1)
+            {
+                printf("%s|" MAGENTA "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
+            }
+            else if (room->type == Start)
             {
                 roomColor = GREEN;
                 printf("%s|" GREEN "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
@@ -380,16 +418,13 @@ void drawTemporalMap()
                 roomColor = RED;
                 printf("%s|" RED "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
             }
+            else if (room->occupiedByMonster == 1)
+            {
+                printf("%s|" CYAN "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
+            }
             else
             {
-                if (room->occupiedByMonster == 1)
-                {
-                    printf("%s|" CYAN "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
-                }
-                else
-                {
-                    printf("%s|" DEFAULT "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
-                }
+                printf("%s|" DEFAULT "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
             }
 
             for (int k = 0; k < 4; k++)
@@ -877,5 +912,5 @@ int generateMap()
     printf("Start Room: %d\n", startRoomID);
     printf("Goal Room: %d\n", goalRoomID);
 
-    return 1;
+    return startRoomID;
 }
