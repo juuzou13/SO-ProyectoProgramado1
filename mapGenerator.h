@@ -217,6 +217,22 @@ int setMonsterID(int roomID, int monsterID)
     }
 }
 
+int setHeroInRoom(int id, int state)
+{
+    if (id > N * N || id < 1)
+    {
+        printf("No existe habitacion con dicho id.\n");
+        return -1;
+    }
+    else
+    {
+        int i = (id - 1) / N;
+        int j = (id - 1) % N;
+        game_map[i][j].isHeroInRoom = state;
+        return 0;
+    }
+}
+
 int isHeroInRoom(int roomID){
     if (roomID > N * N || roomID < 1)
     {
@@ -877,5 +893,5 @@ int generateMap()
     printf("Start Room: %d\n", startRoomID);
     printf("Goal Room: %d\n", goalRoomID);
 
-    return 1;
+    return startRoomID;
 }
