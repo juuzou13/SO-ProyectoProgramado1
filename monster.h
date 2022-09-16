@@ -56,9 +56,9 @@ int isMonsterInHerosLocation(struct monster *m, struct hero *h) {
 
 int attackHero(struct monster *m, struct hero *h) {
     changeMonsterState(m, ATTACK);
-    printf("Monster %d is attacking hero %d\n", m->id, h->id);
+    printf("Monster %d is attacking hero\n", m->id);
     h->hp -= m->atk;
-    printf("Hero %d has %d hp left\n", h->id, h->hp);
+    printf("Hero has %d hp left\n", h->hp);
     changeMonsterState(m, IDLE);
     return true;
 }
