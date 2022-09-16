@@ -5,7 +5,6 @@
 #include "global.h"
 #include <pthread.h>
 #include <semaphore.h>
-#include <ncurses.h>
 
 pthread_mutex_t lock;
 sem_t semaph;

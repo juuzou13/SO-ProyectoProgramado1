@@ -481,6 +481,14 @@ void connectRooms(int *roomsArray, int *directionsArray, int size)
         currentRoomId = roomsArray[i];
         struct room *currentRoomPt = getRoomPointerByID(currentRoomId);
         currentRoomPt->type = getRandomRoomType();
+
+        if (currentRoomPt->type == Treasure){
+                currentRoomPt->treasure = 1;
+        }
+        else if (currentRoomPt->type == Trap){
+            currentRoomPt->trap = 1;
+        }
+
         openDoor(currentRoomId, directionsArray[i]);
         if (oppositeDoor != -1)
         {
