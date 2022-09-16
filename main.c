@@ -12,6 +12,9 @@
 pthread_mutex_t lock;
 sem_t semaph;
 
+// maneja el ciclo del juego, ventana
+int closeWindow = 0;
+
 int monster0Movements[500];
 int monster0MovementsIndex = 0;
 
@@ -119,7 +122,8 @@ void * monsterLife(void * m){
             //sem_post(&semaph);
             sleep((rand()%3)+1);
         // ---------------------------------------------------------
-        if(current_game_state == GAME_STATE_OVER || current_game_state == GAME_STATE_VICTORY){
+        if(current_game_state == GAME_STATE_OVER || current_game_state == GAME_STATE_VICTORY 
+            || closeWindow == 1){
             pthread_exit(0);
         }
     }
@@ -128,6 +132,7 @@ void * monsterLife(void * m){
     sleep(3);
     pthread_exit(0);
 }
+
 
 int main(){
 
@@ -350,8 +355,7 @@ int main(){
     dest_you_win.x =  SCREEN / 3;
     dest_you_win.y = SCREEN / 4;
 
-	// controla el ciclo de animación
-	int close = 0;
+
 
 	// velocidad del sprite
 	//int speed = 300;
@@ -360,13 +364,13 @@ int main(){
   
 
 	// ciclo de animación
-	while (!close) {
+	while (!closeWindow) {
 		SDL_Event event;
 
         current_room_player = getRoomPointerByID(current_room_id);
         if(current_room_player->type == Goal){
             current_game_state = GAME_STATE_VICTORY;
-            //close = 1;
+            //closeWindow = 1;
         }
 
 		// administración de eventos
@@ -375,7 +379,7 @@ int main(){
 
 			case SDL_QUIT:
 				// manejando el botón de cerrar
-				close = 1;
+				closeWindow = 1;
 				break;
 
 			case SDL_KEYDOWN:
