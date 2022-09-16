@@ -1,927 +1,137 @@
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "mapGenerator.h"
+#include "monster.h"
+#include <pthread.h>
+#include <semaphore.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_timer.h>
 
-/*#define SCREEN 700
-#define N 10
-#define CELL SCREEN / N
-#define DOOR */
+pthread_mutex_t lock;
+sem_t semaph;
 
-/*
-#define N 20
-#define CELL SCREEN / N
-#define DOOR 22
-*/
+int monster0Movements[500];
+int monster0MovementsIndex = 0;
 
-/*
-#define N 30
-#define CELL SCREEN / N
-#define DOOR 23
-*/
+int monster1Movements[500];
+int monster1MovementsIndex = 0;
 
-#define true 1
-#define false 0
-
-#define RED "\x1b[31m"
-#define GREEN "\x1b[32m"
-#define YELLOW "\x1b[33m"
-#define BLUE "\x1b[34m"
-#define MAGENTA "\x1b[35m"
-#define CYAN "\x1b[36m"
-#define DEFAULT "\x1b[0m"
-
-#define EASY 10
-#define MEDIUM 20
-#define HARD 30
-
-
-#define GAME_STATE_RUN 0
-#define GAME_STATE_OVER 1
-#define GAME_STATE_VICTORY 2
-
-enum CardinalPoint
-{
-    North,
-    South,
-    East,
-    West
-}; // North = 0, South = 1, East = 2, West = 3
-enum DoorState
-{
-    Closed,
-    Open
-}; // Open = 1, Closed = 0
-enum RoomType
-{
-    Normal,
-    Treasure,
-    Trap,
-    Start,
-    Goal,
-    Wall
-}; // Normal = 0, Treasure = 1, Trap = 2, Start = 3, Goal = 4, Wall = 5
-
-struct door
-{
-    enum CardinalPoint cardinal;
-    enum DoorState state;
-};
-
-struct room
-{
-    int i;
-    int j;
-    int id;
-    int type; // 0=Normal, 1=Start, 2=Goal
-    struct door doors[4];
-    int openDoorsLeft; // Number of open doors
-
-    int discovered;
-    int occupied;
-
-    int treasure;
-    int trap;
-    int monster;
-};
-
-//---Variables globales---
-
-//short N;
-struct room **game_map;
-int current_room_id;
-int start_i;
-int start_j;
-int current_game_state = GAME_STATE_RUN;
-int N;
-int DOOR;
-int SCREEN = 1200;
-int CELL;
-
-//------------------------
-
-/*
-    Retorna el id de la habitacion en la direccion cardinal ingresada, de la habitacion ingresada en currID
-    Retorna -1 si no hay habitacion en esa direccion
-*/
-
-int getNeighbour(int currID, enum CardinalPoint direction)
-{
-    switch (direction)
-    {
-    case North:
-        return currID - N > 0 ? currID - N : -1;
-    case South:
-        return currID + N <= N * N ? currID + N : -1;
-    case East:
-        return currID % N != 0 ? currID + 1 : -1;
-    case West:
-        return currID % N != 1 ? currID - 1 : -1;
-    }
-}
-
-// Crea 4 posibles puertas para cada habitacion, todas cerradas
-void createDoors(struct door doors[4])
-{
-    for (int i = 0; i < 4; i++)
-    {
-        doors[i].cardinal = i;
-        doors[i].state = Closed;
-    }
-}
-
-char *getCardinalName(int cardinal)
-{
-    switch (cardinal)
-    {
-    case 0:
-        return "Norte";
-        break;
-    case 1:
-        return "Sur";
-        break;
-    case 2:
-        return "Este";
-        break;
-    case 3:
-        return "Oeste";
-        break;
-    }
-}
-
-// Imprime los datos de una habitacion
-void getRoomDetails(struct room *room)
-{
-    printf("\n");
-    printf("Room i: %d\n", room->i);
-    printf("Room j: %d\n", room->j);
-    printf("Room id: %d\n", room->id);
-    printf("Room north neighbour: %d\n", getNeighbour(room->id, North));
-    printf("Room south neighbour: %d\n", getNeighbour(room->id, South));
-    printf("Room east neighbour: %d\n", getNeighbour(room->id, East));
-    printf("Room west neighbour: %d\n", getNeighbour(room->id, West));
-
-    char tipo[10];
-
-    switch (room->type)
-    {
-    case Normal:
-        strcpy(tipo, "Normal");
-        break;
-    case Treasure:
-        strcpy(tipo, "Treasure");
-        break;
-    case Trap:
-        strcpy(tipo, "Trap");
-        break;
-    case Start:
-        strcpy(tipo, "Start");
-        break;
-    case Goal:
-        strcpy(tipo, "Goal");
-        break;
-    case Wall:
-        strcpy(tipo, "Wall");
-        break;
-    }
-
-    printf("Room type: %s\n", tipo);
-    printf("Room doors: \n");
-
-    for (int k = 0; k < 4; k++)
-    {
-        printf("  Door %d) Cardinal: %s, State: %d\n", k + 1, getCardinalName(room->doors[k].cardinal), room->doors[k].state);
-    }
-
-    printf("Room open doors left: %d\n", room->openDoorsLeft);
-    printf("Room discovered: %d\n", room->discovered);
-    printf("Room occupied: %d\n", room->occupied);
-    printf("Room treasure: %d\n", room->treasure);
-    printf("Room monster: %d\n", room->monster);
-    printf("\n");
-}
-
-// Imprime los datos de todas las habitaciones
-void getMapDetails()
-{
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            printf("Matriz en posicion [%d][%d]\n", i, j);
-            getRoomDetails(&game_map[i][j]);
-        }
-    }
-}
-
-// Imprime los datos de una habitacion especifica
-void getRoomDetailsByID(int id)
-{
-    if (id > N * N || id < 1)
-    {
-        printf("No existe habitacion con dicho id.\n");
-    }
-    else
-    {
-        int i = (id - 1) / N;
-        int j = (id - 1) % N;
-        getRoomDetails(&game_map[i][j]);
-    }
-}
-
-struct room *getRoomPointerByID(int id)
-{
-    if (id > N * N || id < 1)
-    {
-        printf("No existe habitacion con dicho id.\n");
-    }
-    else
-    {
-        int i = (id - 1) / N;
-        int j = (id - 1) % N;
-        return &game_map[i][j];
-    }
-}
-
-void printArray(int *array, int size)
-{
-    for (int i = 0; i < size; i++)
-    {
-        printf("%d ", array[i]);
-    }
-    printf("\n");
-}
-
-void printArrayFrom(int *array, int index, int size)
-{
-    for (int i = index; i < size; i++)
-    {
-        printf("%d ", array[i]);
-    }
-    printf("\n");
-}
-
-int isGoal(int id)
-{
-    int i = (id - 1) / N;
-    int j = (id - 1) % N;
-    return game_map[i][j].type == Goal;
-}
-
-int isInArray(int *array, int size, int element)
-{
-    for (int i = 0; i < size; i++)
-    {
-        if (array[i] == element)
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
-// Dibuja el mapa con ASCII mostrando paredes y puertas abiertas
-void drawTemporalMap()
-{
-    printf("\n");
-    char openDoors[5] = {' ', ' ', ' ', ' ', '\0'};
-    struct room *room;
-
-    char *roomColor;
-
-    for (int i = 0; i < N; i++)
-    {
-
-        for (int j = 0; j < N; j++)
-        {
-
-            room = &game_map[i][j];
-
-            for (int k = 0; k < 4; k++)
-            {
-                if (room->type == Wall)
-                {
-                    for (int k = 0; k < 4; k++)
-                    {
-                        openDoors[k] = '//';
-                    }
-                }
-                else
-                {
-                    if (room->doors[k].state == Open)
-                    {
-                        switch (room->doors[k].cardinal)
-                        {
-                        case North:
-                            openDoors[0] = '^';
-                            break;
-                        case South:
-                            openDoors[1] = 'v';
-                            break;
-                        case East:
-                            openDoors[2] = '>';
-                            break;
-                        case West:
-                            openDoors[3] = '<';
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        openDoors[k] = ' ';
-                    }
-                }
-            }
-            char *spaces = "";
-            char *spaces2 = "  ";
-
-            int q = room->id;
-            if (q < 10)
-            {
-                spaces2 = "  ";
-            }
-            else if (q < 100)
-            {
-                spaces2 = " ";
-            }
-            else if (q < 1000)
-            {
-                spaces2 = "";
-            }
-
-            if (room->type == Start)
-            {
-                roomColor = GREEN;
-                printf("%s|" GREEN "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
-            }
-            else if (room->type == Goal)
-            {
-                roomColor = RED;
-                printf("%s|" RED "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
-            }
-            else
-            {
-                printf("%s|" DEFAULT "%d" DEFAULT ") %s%s", spaces, room->id, openDoors, spaces2);
-            }
-
-            for (int k = 0; k < 4; k++)
-            {
-                openDoors[k] = ' ';
-            }
-
-            if (room->id % N == 0)
-            {
-                printf("%s|", spaces);
-            }
-        }
-        printf("\n");
-    }
-    printf("\n");
-}
-
-int getMaxNeighbours(int id)
-{
-
-    if (id == 1 || id == N || id == N * N || id == N * N - N + 1)
-    {
-        return 2;
-    }
-
-    return 3;
-}
-
-
-
-void connectRooms(int *roomsArray, int *directionsArray, int size)
-{
-    int currentRoomId = 0;
-    int nextRoom = 0;
-    struct room *currentRoomPtr;
-    // Print roomsArray
-    // printf("Rooms array: ");
-    // printArray(roomsArray, size);
-
-    int oppositeDoor = -1;
-
-    int oppositeTable[4] = {1, 0, 3, 2};
-
-    for (int i = 0; i < size - 1; i++)
-    {
-        currentRoomId = roomsArray[i];
-        openDoor(currentRoomId, directionsArray[i]);
-        if (oppositeDoor != -1)
-        {
-            openDoor(currentRoomId, oppositeDoor);
-        }
-        oppositeDoor = oppositeTable[directionsArray[i]];
-        //printf(GREEN "Abriendo puerta %s de la habitacion %d\n" DEFAULT, getCardinalName(directionsArray[i]), currentRoomId);
-    }
-
-    currentRoomPtr = getRoomPointerByID(roomsArray[size - 1]);
-    currentRoomPtr->doors[oppositeDoor].state = Open;
-    currentRoomPtr->openDoorsLeft = currentRoomPtr->openDoorsLeft - 1;
-
-    // getMapDetails();
-    // getMapDetails();
-    // drawTemporalMap();
-}
-
-void getUnvisitedeighbors(int *roomsList, int size, int *unvisitedO, int *unvisitedSizeO, int *unvisitedDirectionsO, int *unvisitedDirectionsSizeO, int goalRoomID)
-{
-    int neighbor;
-    int unvisited[N * N];
-    int unvisitedSize = 0;
-    int unvisitedDirections[N * N];
-    int unvisitedDirectionsSize = 0;
-    int oppositeTable[4] = {1, 0, 3, 2};
-
-    for (int i = 0; i < size; i++)
-    {
-        for (int j = 0; j < 4; j++)
-        {
-            neighbor = getNeighbour(roomsList[i], j);
-            if (roomsList[i] != goalRoomID && neighbor != -1 && !isInArray(roomsList, size, neighbor) && !isInArray(unvisited, unvisitedSize, neighbor))
-            {
-                unvisited[unvisitedSize++] = neighbor;
-                unvisitedDirections[unvisitedDirectionsSize++] = oppositeTable[j];
-            }
-        }
-    }
-
-    *unvisitedSizeO = unvisitedSize;
-    *unvisitedDirectionsSizeO = unvisitedDirectionsSize;
-    memcpy(unvisitedO, unvisited, unvisitedSize * sizeof(int));
-    memcpy(unvisitedDirectionsO, unvisitedDirections, unvisitedDirectionsSize * sizeof(int));
-}
-
-int openDoor(int roomID, int doorDirection)
-{
-    struct room *room = getRoomPointerByID(roomID);
-
-    if (room->openDoorsLeft == 0)
-    {
-        printf("Cant open any more doors in %d\n", roomID);
-        return false;
-    }
-
-    room->doors[doorDirection].state = Open;
-    room->openDoorsLeft = room->openDoorsLeft - 1;
-
-    return true;
-}
-
-int closeDoor(int roomID, int doorDirection)
-{
-    struct room *room = getRoomPointerByID(roomID);
-
-    if (room->openDoorsLeft == 3)
-    {
-        printf("Cant close anymore doors in %d\n", roomID);
-        return false;
-    }
-
-    room->doors[doorDirection].state = Closed;
-    //room->openDoorsLeft = room->openDoorsLeft + 1;
-
-    // printf("Door opened in room %d, direction %d\n");
-
-    return true;
-}
-
-void getClosedDoorsFromRoom(int ID)
-{
-    struct room *currRoom = getRoomPointerByID(ID);
+void randomDestination(int * destinations) {
+    int a[4] = {0,1,2,3};
 
     for (int i = 0; i < 4; i++)
     {
-        if (currRoom->doors[i].state == Closed)
-        {
-            printf("Door %d is closed in %d\n", i, ID);
-        }
+        int j = rand() % 4;
+        int temp = a[i];
+        a[i] = a[j];
+        a[j] = temp;
     }
+
+    memcpy(destinations, a, sizeof(a));
 }
 
-int getRandomRoomType()
+int getNextRoomForMonster(int id)
 {
-    int probability = rand() % 10; // Genera un numero aleatorio entre 0 y 9
+    int currentIndex = 0;
+    int canProceedToThisRoom = 0;
 
-    if (probability < 3)
-    { // 30% de probabilidad de ser una habitacion normal
-        return Normal;
-    }
-    else if (probability > 6)
-    { // 30% de probabilidad de ser una habitacion con tesoro
-        return Treasure;
-    }
-    else
-    { // 40% de probabilidad de ser una habitacion con trampa
-        return Trap;
-    }
-}
+    struct room *tempRoom = getRoomPointerByID(id);
+    struct room *tempNeighbour;
+    int destinations[4];
 
-void createMap(int startRoomID, int total)
-{
-    int idList[total];
-    int id;
-
-    printf("N in create map: %d\n", N);
-
-    for (int i = 0; i < N; i++)
+    randomDestination(destinations);
+            
+    int neighbourID;
+    for (int i = 0; i < 4; i++)
     {
-        game_map[i] = (int *)malloc(N * sizeof(int));
-        printf("after malloc in for, generate map\n");
-        for (int j = 0; j < N; j++)
+        canProceedToThisRoom = 0;
+        currentIndex = destinations[i];
+        neighbourID = getNeighbour(id, currentIndex); //Se obtiene el numero de cuarto candidato a entrar
+        if (neighbourID != -1)
         {
-            struct room *room = (struct room *)malloc(sizeof(struct room));
-
-            room->i = i;
-            room->j = j;
-
-            // Calcula un id desde 1,2,3..N*N, con la i y la j
-            id = (j + 1) + N * i;
-
-            room->id = (j + 1) + N * i;
-            idList[id - 1] = (j + 1) + N * i; // Guarda el id en la lista de ids
-
-            int probability = rand() % 10; // Genera un numero aleatorio entre 0 y 9
-
-            if (probability < 3)
-            { // 30% de probabilidad de ser una habitacion normal
-                room->type = Normal;
-            }
-            else if (probability > 6)
-            { // 30% de probabilidad de ser una habitacion con tesoro
-                room->type = Treasure;
-                room->treasure = 1;
-            }
-            else
-            { // 40% de probabilidad de ser una habitacion con trampa
-                room->type = Trap;
-                room->trap = 1;
-            }
-
-            // room->type = room->id == startRoomID ? Start : room->id == goalRoomID ? Goal: room->type;
-            room->type = room->id == startRoomID ? Start : Wall;
-            createDoors(room->doors);
-            room->openDoorsLeft = getMaxNeighbours(room->id); // Cada habitacion puede tener hasta 3 puertas abiertas
-            room->discovered = false;
-            room->occupied = room->type == Start ? true : false; // La habitacion de inicio siempre esta ocupada, las demas no
-            room->treasure = false;
-            room->monster = false;
-
-            // game_rooms[id-1] = *room; //Guarda la habitacion en la lista de habitaciones
-            game_map[i][j] = *room; // Guarda la habitacion en la matriz (mapa del juego)
-        }
-    }
-    printf("after for, generate map\n");
-}
-
-int generateMap()
-{
-
-    if (N < 2)
-    {
-        printf("N debe ser mayor o igual a 2.\n");
-        return -1;
-    }
-
-    // -------------------- Modulo de creacion del mapa vacio -------------------------
-
-    printf("N in generate map: %d\n",N);
-    int total = N * N;
-
-    game_map = (int **)malloc( N * sizeof(struct room *));
-    printf("after malloc in generate map\n");
-
-    int startRoomID = N % 2 == 0 ? total / 2 - N / 2 : total / 2 + 1; //(rand() % total) + 1; // Se obtiene una habitacion aleatoria para ser la de inicio
-    int goalRoomID;
-
-    createMap(startRoomID, total);
-
-    // -------------------------------------------------------
-
-    // -------------------- Modulo de generacion de un camino al final -------------------------
-
-    int blockedIds[total];
-    int blockedIdsSize = 0;
-
-    int touredIds[total];
-    int touredIdsSize = 0;
-
-    int connections[total];
-    int connectionsSize = 0;
-
-    int possibleConnections[total];
-    int possibleConnectionsSize = 0;
-
-    int possibleDestinations[4];
-    int possibleDestinationsSize = 0;
-
-    touredIds[touredIdsSize++] = startRoomID;
-
-    int currentNeighbour;
-    int currentRoomId;
-    int chosenNextRoom;
-
-    int roomCount = N - 1;
-    int deadEnds = rand() % (4);
-
-    roomCount = roomCount - deadEnds;
-
-    while (roomCount > 0)
-    { // Mientras no se haya llegado a la habitacion final
-        currentRoomId = touredIds[touredIdsSize - 1];
-
-        for (int i = 0; i < 4; i++) // Se recorren las 4 posibles direcciones en las que se puede ir
-        {
-            currentNeighbour = getNeighbour(currentRoomId, i); // Se obtiene el vecino en la direccion i
-
-            if (!isInArray(touredIds, touredIdsSize, currentNeighbour) && !isInArray(blockedIds, blockedIdsSize, currentNeighbour))
-            { // Si el vecino no esta en los ids visitados y no esta en los ids bloqueados
-                if (currentNeighbour != -1)
-                { // Si el vecino existe
-                    if (currentRoomId == startRoomID)
-                    { // Si el cuarto actual es el inicial
-                        if (currentNeighbour != goalRoomID)
-                        {                                                                        // Si el vecino no es el cuarto final
-                            possibleDestinations[possibleDestinationsSize++] = currentNeighbour; // Se agrega el vecino a los posibles destinos
-                            possibleConnections[possibleConnectionsSize++] = i;                  // Se agrega la direccion en la que se puede ir al vecino a las conexiones
-                        }
-                    }
-                    else
-                    {
-                        possibleDestinations[possibleDestinationsSize++] = currentNeighbour; // Se agrega el vecino a los posibles destinos
-                        possibleConnections[possibleConnectionsSize++] = i;                  // Se agrega la direccion en la que se puede ir al vecino a las conexiones
-                    }
-                }
-            }
-        }
-
-        if (possibleDestinationsSize == 0)
-        {                                                 // Si no hay posibles destinos, se bloquea el cuarto actual
-            blockedIds[blockedIdsSize++] = currentRoomId; // Agrega el cuarto a la lista de cuartos bloqueados, ya que no tiene vecinos disponibles
-            touredIdsSize--;                              // Se retrocede un cuarto en la lista de cuartos visitados
-            connectionsSize--;
-            possibleConnectionsSize = 0;  // Se reinician las conexiones
-            possibleDestinationsSize = 0; // Se reinicia la lista de posibles destinos
-        }
-        else
-        {
-            int random = rand() % possibleDestinationsSize;
-            chosenNextRoom = possibleDestinations[random];                // Todos los posibles destinos tienen la misma probabilidad de ser elegidos
-            touredIds[touredIdsSize++] = chosenNextRoom;                  // Se agrega el cuarto elegido a la lista de cuartos visitados
-            connections[connectionsSize++] = possibleConnections[random]; // Se agrega la direccion en la que se puede ir al cuarto elegido a las conexiones
-            possibleDestinationsSize = 0;                                 // Se reinicia la lista de posibles destinos
-            possibleConnectionsSize = 0;                                  // Se reinician las conexiones
-        }
-
-        struct room *room = getRoomPointerByID(currentRoomId);
-
-        if (room->type != Start)
-        {
-            room->type = getRandomRoomType();
-        }
-
-        roomCount--;
-    }
-
-    // -------------------------------------------------------
-
-    // -------------------- Se define un cuarto final -------------------------
-
-    struct room *goalRoom = getRoomPointerByID(touredIds[touredIdsSize - 1]);
-    goalRoom->type = Goal;
-    goalRoomID = goalRoom->id;
-
-    // ------------------------------------------------------------------------
-
-    // -------------------- Aqui se abren las puertas del laberinto en base al camino descubierto -------------------------
-
-    printf("Abriendo puertas del laberinto...\n\n");
-
-    int camino[total];
-    int caminoSize = 0;
-
-    memcpy(camino, touredIds, sizeof(touredIds));
-    caminoSize = touredIdsSize;
-
-    connectRooms(touredIds, connections, touredIdsSize);
-
-    /*
-    int possibleDoors[4];
-    int possibleDoorsSize = 0;
-
-    for (int i = 0; i < touredIdsSize; i++)
-    {
-        struct room *currRoom = getRoomPointerByID(touredIds[i]);
-        struct room *neighbour;
-        int neighbourID;
-        int oppositeTable[4] = {1, 0, 3, 2};
-
-        for (int j = 0; j < 4; j++)
-        {
-            neighbourID = getNeighbour(currRoom->id, j);
-            if (neighbourID != -1)
+            if (tempRoom->doors[currentIndex].state == Open)
             {
-                neighbour = getRoomPointerByID(neighbourID);
-                if (currRoom->doors[j].state == Closed && neighbour->type != Wall && neighbour->openDoorsLeft > 0)
-                {
-                    if (currRoom->type == Start)
-                    {
-                        if (neighbour->type != Goal)
-                        {
-                            possibleDoors[possibleDoorsSize++] = j;
-                        }
-                    }
-                    else if (currRoom->type == Goal)
-                    {
-                        if (neighbour->type != Start)
-                        {
-                            possibleDoors[possibleDoorsSize++] = j;
-                        }
-                    }
-                    else
-                    {
-                        possibleDoors[possibleDoorsSize++] = j;
-                    }
+                //! Region critica
+                pthread_mutex_lock(&lock); //Aqui el hilo monstruo obtiene el estado de una habitacion de manera sincornizada y revisa si esta ocupada o no
+                tempNeighbour = getRoomPointerByID(neighbourID); 
+                if(tempNeighbour->occupied == 0 && tempNeighbour->type != Start && tempNeighbour->type != Goal && tempNeighbour->type != Wall){
+                    canProceedToThisRoom = 1;
                 }
-            }
-        }
-
-        
-        int chance = rand() % 10;
-
-        if (chance < 8)
-        {
-            possibleDoorsSize = 0;
-        }
-        
-
-        for (int j = 0; j < possibleDoorsSize; j++)
-        {
-            neighbourID = getNeighbour(currRoom->id, possibleDoors[j]);
-            if(openDoor(neighbourID, oppositeTable[possibleDoors[j]])){
-                openDoor(currRoom->id, possibleDoors[j]);
-            }else{
-                printf("No se pudo abrir la puerta %d del cuarto %d\n", possibleDoors[j], currRoom->id);
-                closeDoor(neighbourID, oppositeTable[possibleDoors[j]]);
+                pthread_mutex_unlock(&lock);
             }
             
-            //printf("Puerta abierta entre %d y %d\n", currRoom->id, neighbourID);
-        }
-
-        possibleDoorsSize = 0;
-    }
-    */
-    
-
-    //drawTemporalMap();
-
-    // -------------------- Modulo de creacion de callejones sin salida -------------------------
-
-    printf("Creando callejones sin salida...\n\n");
-
-    int univisted[total];
-    int unvisitedSize = 0;
-
-    int unvisitedDirections[total];
-    int unvisitedDirectionsSize = 0;
-
-    struct room *currentRoom;
-    struct room *roomToConnect;
-
-    getUnvisitedeighbors(touredIds, touredIdsSize, &univisted, &unvisitedSize, &unvisitedDirections, &unvisitedDirectionsSize, goalRoomID);
-
-    int oppositeTable[4] = {1, 0, 3, 2};
-
-    int roomToConnectId;
-    int connectedRoomID;
-    int directionToConnect;
-    int oppositeDirection;
-
-    int tries = unvisitedDirectionsSize;
-
-    int visitedIndexes[unvisitedSize];
-    int visitedIndexesSize = 0;
-
-    int actualDeadEnds = 0;
-
-    int opporunities = 500;
-
-    while (0 < deadEnds || caminoSize < N)
-    {
-        int random = rand() % unvisitedSize;
-
-        while(isInArray(visitedIndexes, visitedIndexesSize, random))
-        {
-            random = rand() % unvisitedSize;
-        }
-
-        connectedRoomID = univisted[random];
-        directionToConnect = unvisitedDirections[random];
-
-        roomToConnectId = getNeighbour(connectedRoomID, directionToConnect);
-        oppositeDirection = oppositeTable[directionToConnect];
-
-        currentRoom = getRoomPointerByID(connectedRoomID);
-        roomToConnect = getRoomPointerByID(roomToConnectId);
-
-        //printf(DEFAULT "Intentando conectar %d con %d\n" DEFAULT, connectedRoomID, roomToConnectId);
-        int res = openDoor(roomToConnectId, oppositeDirection);
-        if (res)
-        {
-            struct room *room = getRoomPointerByID(connectedRoomID);
-
-            camino[caminoSize++] = connectedRoomID;
-
-            room->type = getRandomRoomType();
-
-            openDoor(connectedRoomID, directionToConnect);
-            deadEnds--;
-            //printf(GREEN "Se conecto %d con %d\n" DEFAULT, connectedRoomID, roomToConnectId);
-            actualDeadEnds++;
-        }
-        else
-        {
-            //printf(RED "No se pudo conectar %d con %d\n" DEFAULT, connectedRoomID, roomToConnectId);
-            // closeDoor(roomToConnectId, oppositeDirection);
-            currentRoom->type = Wall;
-        }
-
-        visitedIndexes[visitedIndexesSize++] = random;
-
-        if (visitedIndexesSize == unvisitedSize)
-        {
-            return -1;
-        }
-
-
-    }
-
-    //getMapDetails(); // Con esto pueden obtener los detalles de cada habitacion,
-                    // o si quieren con struct room *room = getRoomPointerByID(id); pueden obtener el puntero a la habitacion y acceder a sus atributos
-                    // para obtener los datos de una habitacion desde la matriz de habitaciones pueden llamar a struct room *room = &gameMap[x][y]
-    
-
-    struct room *startRoom = getRoomPointerByID(startRoomID);
-    startRoom->type = getRandomRoomType();
-    startRoom->occupied=0;
-
-    int found = 0;
-    int d = 0;
-
-    while(!found){
-        int connectsToGoal = 0;
-        int r = rand() % caminoSize;
-        
-        if(camino[r]!=goalRoomID){
-            for(int j=0; j<4; j++){            
-                d = getNeighbour(camino[r], j);
-                if(d!=-1){
-                    struct room * Nroom = getRoomPointerByID(getNeighbour(camino[r], j));
-                    if(Nroom->type == Goal){
-                        connectsToGoal = 1;
-                    }
-                }
+            if(canProceedToThisRoom)
+            {
+                return neighbourID;
             }
-            printf("Habitacion %d conecta con la meta? %d\n", camino[r], connectsToGoal);
-            if(!connectsToGoal){
-                struct room * newStartroom = getRoomPointerByID(camino[r]);
-                newStartroom->type = Start;
-                newStartroom->occupied=1;
-                startRoomID = camino[r];
-                found = 1;
-                current_room_id = startRoomID;
-            }
+            
         }
     }
+    return -1;
 
-    struct room* start_room_pointer = getRoomPointerByID(startRoomID);
-    start_i = start_room_pointer->j;
-    start_j = start_room_pointer->i;
+}
 
-    drawTemporalMap(); // Con este pueden guiarse para ver como quedo el mapa y compararlo en SDL
+void * monsterLife(void * m){
+    struct monster * mon = (struct monster *) m;
+    int freeNSize = 0;
+    int freeNeighbours[4];
+    //printf("\nMonster %d is alive\n", mon->id);
+    //while(mon->hp != 0){
+    int r; 
 
+    while(mon->hp > 0){
+        //printf("\nLooking for free neighbours of %d in %d\n", mon->id, mon->location);
+        r = rand() % 100;
+        int loc = getNextRoomForMonster(mon->location);
 
-    printf("Camino de habitaciones hasta el final (%d):\n", caminoSize-actualDeadEnds);
-    printArray(camino, caminoSize-actualDeadEnds);
-    printf("Callejones sin salida (%d):\n", actualDeadEnds);
-    printArrayFrom(camino, caminoSize-actualDeadEnds, caminoSize);
+        if(loc!=-1){ //Si hay una habitacion libre
+            setOccupied(mon->location, 0);
+            monsterMove(mon, loc);
+            setOccupied(loc, 1);
+            //Esto es temporal
+            if(mon->id==0){
+                monster0Movements[monster0MovementsIndex] = loc;
+                monster0MovementsIndex++;
+            }else if(mon->id==1){
+                monster1Movements[monster1MovementsIndex] = loc;
+                monster1MovementsIndex++;
+            }
+            //-----------------------------------------------------
+            //printf("Found (%d), a free neighbour of monster %d, located in %d\n", loc, mon->id, mon->location);
 
-    printf("Total Rooms: %d\n", caminoSize);
+        }else{ //Si no hay habitaciones libres, el monstruo se queda quieto
+            changeMonsterState(mon, IDLE);
+            //printf("No free neighbours found for monster %d, located in %d\n", mon->id, mon->location);
+        }       
 
-    printf("Start Room: %d\n", startRoomID);
-    printf("Goal Room: %d\n", goalRoomID);
+        // .Todo esto es temporal
+            /*pthread_mutex_lock(&lock);
+            system("clear");
+            //drawTemporalMap();
+            pthread_mutex_unlock(&lock);*/
 
-    return 1;
+            /*printf("Monster 0 path:\n");
+            printArray(monster0Movements, monster0MovementsIndex);   
+            printf("Monster 1 path:\n");
+            printArray(monster1Movements, monster1MovementsIndex);*/
+            //sem_post(&semaph);
+            sleep((rand()%3)+1);
+        // ---------------------------------------------------------
+        if(current_game_state == GAME_STATE_OVER || current_game_state == GAME_STATE_VICTORY){
+            pthread_exit(0);
+        }
+    }
+    
+    printf("Monster %d is dead\n", mon->id);
+    sleep(3);
+    pthread_exit(0);
 }
 
 int main(){
 
     srand(time(NULL));
-	struct room *room_to_render;
 	int next_room_id;
     struct room *current_room_player;
 	struct room *next_room_player;
@@ -995,6 +205,26 @@ int main(){
         printf("Reintentando generar mapa...\n");
     }
 
+    pthread_mutex_init(&lock, NULL);
+
+    int monsterCount = N/2;
+
+    pthread_t * monsterThreads;
+    monsterThreads = (pthread_t *)malloc(sizeof(pthread_t)*monsterCount);
+
+    struct monster monsters[monsterCount];
+
+    for(int m = 0; m < monsterCount; m++){
+        monsters[m].id = m;
+        monsters[m].hp = 3;
+        monsters[m].atk = 1;
+        monsters[m].state = IDLE;
+        monsters[m].location = getFreeRooms();
+        //printf("Room %d is occupied by monster %d\n", monsters[m].location, monsters[m].id);
+        setOccupied(monsters[m].location, 1);
+        pthread_create(&monsterThreads[m], NULL, monsterLife, &monsters[m]);
+    }
+
     /*--------------------------------------------------------------------------------------------------------------
         INICIA CÓDIGO SDL
     --------------------------------------------------------------------------------------------------------------*/
@@ -1022,19 +252,18 @@ int main(){
 	SDL_Surface* goal;
     SDL_Surface* game_over;
     SDL_Surface* you_win;
-    //SDL_Surface* monster;
+    SDL_Surface* monster;
 
 	// ubicación de las imágenes
 	hero = IMG_Load("hero.png");
 	wall = IMG_Load("wall.jpg");
 	room = IMG_Load("room.jpg");
-	door = IMG_Load("door.png");
+	door = IMG_Load("wall.jpg");
     start = IMG_Load("start.png");
     goal = IMG_Load("goal.png");
     game_over = IMG_Load("gameOver.jpg");
     you_win = IMG_Load("win.jpg");
-
-	//monster = IMG_Load("monster.jpg");
+    monster = IMG_Load("monster.jpg");
 
 	// carga la imagen en la memoria del hardware gráfico
 	SDL_Texture* tex_hero = SDL_CreateTextureFromSurface(rend, hero);
@@ -1045,8 +274,7 @@ int main(){
 	SDL_Texture* tex_goal = SDL_CreateTextureFromSurface(rend, goal);
     SDL_Texture* tex_game_over = SDL_CreateTextureFromSurface(rend, game_over);
     SDL_Texture* tex_win = SDL_CreateTextureFromSurface(rend, you_win);
-      
-    //SDL_Texture* tex_monster = SDL_CreateTextureFromSurface(rend, monster);
+    SDL_Texture* tex_monster = SDL_CreateTextureFromSurface(rend, monster);
 
 	// limpia la memoria principal
 	SDL_FreeSurface(hero);
@@ -1057,7 +285,7 @@ int main(){
 	SDL_FreeSurface(goal);
     SDL_FreeSurface(game_over);
     SDL_FreeSurface(you_win);
-    //SDL_FreeSurface(monster);
+    SDL_FreeSurface(monster);
 
 	// permite controlar la posición de los sprites en pantalla
 	SDL_Rect dest_hero;
@@ -1068,7 +296,7 @@ int main(){
 	SDL_Rect dest_goal;
     SDL_Rect dest_game_over;
     SDL_Rect dest_you_win;
-    //SDL_Rect dest_monster;
+    SDL_Rect dest_monster;
 
 	// conecta las texturas con dest para controlar su posición
 	SDL_QueryTexture(tex_hero, NULL, NULL, &dest_hero.w, &dest_hero.h);
@@ -1079,19 +307,18 @@ int main(){
     SDL_QueryTexture(tex_goal, NULL, NULL, &dest_goal.w, &dest_goal.h);
     SDL_QueryTexture(tex_game_over, NULL, NULL, &dest_game_over.w, &dest_game_over.h);
     SDL_QueryTexture(tex_win, NULL, NULL, &dest_you_win.w, &dest_you_win.h);
-    //SDL_QueryTexture(tex_monster, NULL, NULL, &dest_monster.w, &dest_monster.h);
+    SDL_QueryTexture(tex_monster, NULL, NULL, &dest_monster.w, &dest_monster.h);
 
 	// ajusta el ancho y alto de los sprites
 
-    
 	dest_hero.w = CELL;
 	dest_hero.h = CELL;
 
 	dest_wall.w = CELL;
 	dest_wall.h = CELL;
 
-	dest_room.w = CELL;
-	dest_room.h = CELL;
+	dest_room.w = SCREEN;
+	dest_room.h = SCREEN;
 
 	dest_door.w /= DOOR;
 	dest_door.h /= DOOR;
@@ -1108,8 +335,8 @@ int main(){
     //dest_game_over.w = 1;
     //dest_game_over.h  = 1;
 
-    //dest_monster.w = CELL;
-    //dest_monster.h = CELL;
+    dest_monster.w = CELL;
+    dest_monster.h = CELL;
 
 	// establece la posición inicial en x del sprite
 	dest_hero.x = start_i*CELL;
@@ -1167,7 +394,7 @@ int main(){
                                     current_room_player->occupied = false;
                                     next_room_player->occupied = true;
                                     current_room_id = next_room_id;
-                                    dest_hero.y -= CELL;
+                                    //dest_hero.y -= CELL;
                                 }
                                 
                             }
@@ -1184,7 +411,7 @@ int main(){
                                     current_room_player->occupied = false;
                                     next_room_player->occupied = true;
                                     current_room_id = next_room_id;
-                                    dest_hero.x -= CELL;
+                                    //dest_hero.x -= CELL;
                                 }
                             }
                         }
@@ -1200,7 +427,7 @@ int main(){
                                     current_room_player->occupied = false;
                                     next_room_player->occupied = true;
                                     current_room_id = next_room_id;
-                                    dest_hero.y += CELL;
+                                    //dest_hero.y += CELL;
                                 }
                             }
                         }
@@ -1216,7 +443,7 @@ int main(){
                                     current_room_player->occupied = false;
                                     next_room_player->occupied = true;
                                     current_room_id = next_room_id;
-                                    dest_hero.x += CELL;
+                                    //dest_hero.x += CELL;
                                 }
                             }
                         }
@@ -1257,61 +484,55 @@ int main(){
                 SDL_RenderCopy(rend, tex_win, NULL, &dest_you_win);
                 break;
             case GAME_STATE_RUN:
-                for(int i = 0; i < N; i++) {
-                    for(int j = 0; j < N; j++) {
-                        room_to_render = &game_map[i][j];
-
-                        if(room_to_render->type == Wall) {
-                            dest_wall.x = j*CELL;
-                            dest_wall.y = i*CELL;
-                            SDL_RenderCopy(rend, tex_wall, NULL, &dest_wall);
-                        } else if(room_to_render->type == Start) {
-                            dest_start.x = j*CELL;
-                            dest_start.y = i*CELL;
-                            SDL_RenderCopy(rend, tex_start, NULL, &dest_start);
-                        } else if(room_to_render->type == Goal) {
-                            dest_goal.x = j*CELL;
-                            dest_goal.y = i*CELL;
-                            SDL_RenderCopy(rend, tex_goal, NULL, &dest_goal);
-                        } else {
-                            dest_room.x = j*CELL;
-                            dest_room.y = i*CELL;
-                            SDL_RenderCopy(rend, tex_room, NULL, &dest_room);
-                            for (int k = 0; k < 4; k++) {
-                                if(room_to_render->doors[k].state == 1) {
-                                    switch(room_to_render->doors[k].cardinal) {
-                                        // North = 0, South = 1, East = 2, West = 3
-                                        case 0:
-                                            dest_door.x = j*CELL + 30; // 30 15 8 depende del tamaño de la puerta
-                                            dest_door.y = i*CELL;
-                                            break;
-                                        case 1:
-                                            dest_door.x = j*CELL + 30; // 30 15 8 
-                                            dest_door.y = i*CELL + 45; // 45 20 12 
-                                            break;
-                                        case 2:
-                                            dest_door.x = j*CELL + 50; // 50 30 17 
-                                            dest_door.y = i*CELL + 20; // 20 15 6 
-                                            break;
-                                        case 3:
-                                            dest_door.x = j*CELL; 
-                                            dest_door.y = i*CELL + 20; // 20 10 6 
-                                            break;
-                                        default:
-                                            break;
-                                    }
-                                    SDL_RenderCopy(rend, tex_door, NULL, &dest_door);
-                                }
+                /*if(room_to_render->type == Start) {
+                    dest_start.x = j*CELL;
+                    dest_start.y = i*CELL;
+                    SDL_RenderCopy(rend, tex_start, NULL, &dest_start);
+                } else if(room_to_render->type == Goal) {
+                    dest_goal.x = j*CELL;
+                    dest_goal.y = i*CELL;
+                    SDL_RenderCopy(rend, tex_goal, NULL, &dest_goal);
+                } else {*/
+                    //dest_room.x = j*CELL;
+                    //dest_room.y = i*CELL;
+                    SDL_RenderCopy(rend, tex_room, NULL, &dest_room);
+                    for (int k = 0; k < 4; k++) {
+                        if(current_room_player->doors[k].state == 1) {
+                            switch(current_room_player->doors[k].cardinal) {
+                                // North = 0, South = 1, East = 2, West = 3
+                                case 0:
+                                    dest_door.x = SCREEN/2; 
+                                    dest_door.y = 0;
+                                    break;
+                                case 1:
+                                    dest_door.x = SCREEN/2;  
+                                    dest_door.y = SCREEN-dest_door.h;  
+                                    break;
+                                case 2:
+                                    dest_door.x = SCREEN-dest_door.w;  
+                                    dest_door.y = SCREEN/2;  
+                                    break;
+                                case 3:
+                                    dest_door.x = 0; 
+                                    dest_door.y = SCREEN/2; 
+                                    break;
+                                default:
+                                    break;
                             }
+                            SDL_RenderCopy(rend, tex_door, NULL, &dest_door);
                         }
                     }
-                }
+                    if(current_room_player->occupied) {
+                        dest_monster.x = 2*CELL;
+                        dest_monster.y = 4*CELL;
+                        SDL_RenderCopy(rend, tex_monster, NULL, &dest_monster);
+                    }
+                //}
                 SDL_RenderCopy(rend, tex_hero, NULL, &dest_hero);
-                break;  
+                break;
             default:
-                break;        
+                break;
         }
-		
 
 		// activa los buffers dobles para renderizado múltiple
 		SDL_RenderPresent(rend);
@@ -1327,6 +548,9 @@ int main(){
 	SDL_DestroyTexture(tex_door);
     SDL_DestroyTexture(tex_start);
 	SDL_DestroyTexture(tex_goal);
+    SDL_DestroyTexture(tex_game_over);
+    SDL_DestroyTexture(tex_win);
+    SDL_DestroyTexture(tex_monster);
 
 	// destruye el renderizador
 	SDL_DestroyRenderer(rend);
@@ -1337,35 +561,11 @@ int main(){
 	// cierra SDL
 	SDL_Quit();
 
-
-    return 0;
-}
-
-void pressedButtonMenu(SDL_MouseButtonEvent b, int newN){
-    if(b.button == SDL_BUTTON_LEFT){
-        N = newN;
-        while(generateMap(N)==-1){
-            printf("Reintentando generar mapa...\n");
-        }
-        //N = newN;
-        printf("inside if pressedButton, newN: %d\n", N);
-        if(newN == 10){
-            DOOR = 10;
-        }
-        else if(newN == 20){
-            DOOR = 22;
-        }
-        else{
-            DOOR = 23;
-        }
-        CELL = (int) SCREEN / N;
-        printf("SCREEN: %d\n", SCREEN);
-        printf("CELL: %d\n", CELL);
-        printf("DOOR: %d\n", DOOR);
-        /*while(generateMap(N)==-1){
-            printf("Reintentando generar mapa...\n");
-        }*/
-        current_game_state = 1;
-        printf("out of switch \n");
+    for(int i = 0; i < monsterCount; i++){
+        pthread_join(monsterThreads[i], NULL);
     }
+
+    pthread_mutex_destroy(&lock);
+    
+    return 0;
 }
