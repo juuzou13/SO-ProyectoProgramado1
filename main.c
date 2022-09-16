@@ -5,10 +5,10 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_timer.h>
 
-#define SCREEN 700
+/*#define SCREEN 700
 #define N 10
 #define CELL SCREEN / N
-#define DOOR 10
+#define DOOR */
 
 /*
 #define N 20
@@ -37,9 +37,10 @@
 #define MEDIUM 20
 #define HARD 30
 
-#define GAME_STATE_MENU 0
-#define GAME_STATE_RUN 1
 
+#define GAME_STATE_RUN 0
+#define GAME_STATE_OVER 1
+#define GAME_STATE_VICTORY 2
 
 enum CardinalPoint
 {
@@ -93,7 +94,11 @@ struct room **game_map;
 int current_room_id;
 int start_i;
 int start_j;
-int current_game_state = 0;
+int current_game_state = GAME_STATE_RUN;
+int N;
+int DOOR;
+int SCREEN = 1200;
+int CELL;
 
 //------------------------
 
@@ -521,9 +526,12 @@ void createMap(int startRoomID, int total)
     int idList[total];
     int id;
 
+    printf("N in create map: %d\n", N);
+
     for (int i = 0; i < N; i++)
     {
         game_map[i] = (int *)malloc(N * sizeof(int));
+        printf("after malloc in for, generate map\n");
         for (int j = 0; j < N; j++)
         {
             struct room *room = (struct room *)malloc(sizeof(struct room));
@@ -567,6 +575,7 @@ void createMap(int startRoomID, int total)
             game_map[i][j] = *room; // Guarda la habitacion en la matriz (mapa del juego)
         }
     }
+    printf("after for, generate map\n");
 }
 
 int generateMap()
@@ -580,9 +589,11 @@ int generateMap()
 
     // -------------------- Modulo de creacion del mapa vacio -------------------------
 
+    printf("N in generate map: %d\n",N);
     int total = N * N;
 
-    game_map = (int **)malloc(N * sizeof(struct room *));
+    game_map = (int **)malloc( N * sizeof(struct room *));
+    printf("after malloc in generate map\n");
 
     int startRoomID = N % 2 == 0 ? total / 2 - N / 2 : total / 2 + 1; //(rand() % total) + 1; // Se obtiene una habitacion aleatoria para ser la de inicio
     int goalRoomID;
@@ -915,7 +926,7 @@ int main(){
     struct room *current_room_player;
 	struct room *next_room_player;
 
-    /*int eleccion = 0;
+    int eleccion = 0;
     int input_valid = 0;
     char input[50];
 
@@ -967,14 +978,18 @@ int main(){
     {
     case 1:
         N = EASY;
+        DOOR = 10;
         break;
     case 2:
         N = MEDIUM;
+        DOOR = 22;
         break;
     case 3:
         N = HARD;
+        DOOR = 23;
         break;
-    }*/
+    }
+    CELL = SCREEN/N;
     
     while(generateMap(N)==-1){
         printf("Reintentando generar mapa...\n");
@@ -1005,10 +1020,8 @@ int main(){
 	SDL_Surface* door;
     SDL_Surface* start;
 	SDL_Surface* goal;
-    SDL_Surface* easy;
-	SDL_Surface* medium;
-	SDL_Surface* hard;
-    SDL_Surface* select_label;
+    SDL_Surface* game_over;
+    SDL_Surface* you_win;
     //SDL_Surface* monster;
 
 	// ubicación de las imágenes
@@ -1018,11 +1031,9 @@ int main(){
 	door = IMG_Load("door.png");
     start = IMG_Load("start.png");
     goal = IMG_Load("goal.png");
+    game_over = IMG_Load("gameOver.jpg");
+    you_win = IMG_Load("win.jpg");
 
-    easy = IMG_Load("easyLevel.jpg");
-    medium = IMG_Load("mediumLevel.jpg");
-    hard = IMG_Load("hardLevel.jpg");
-    select_label = IMG_Load("selectLevel.png");
 	//monster = IMG_Load("monster.jpg");
 
 	// carga la imagen en la memoria del hardware gráfico
@@ -1032,11 +1043,9 @@ int main(){
 	SDL_Texture* tex_door = SDL_CreateTextureFromSurface(rend, door);
     SDL_Texture* tex_start = SDL_CreateTextureFromSurface(rend, start);
 	SDL_Texture* tex_goal = SDL_CreateTextureFromSurface(rend, goal);
-    SDL_Texture* tex_easy = SDL_CreateTextureFromSurface(rend, easy);
-    SDL_Texture* tex_medium = SDL_CreateTextureFromSurface(rend, medium);
-    SDL_Texture* tex_hard = SDL_CreateTextureFromSurface(rend, hard);
-    SDL_Texture* tex_select = SDL_CreateTextureFromSurface(rend, select_label);
-    
+    SDL_Texture* tex_game_over = SDL_CreateTextureFromSurface(rend, game_over);
+    SDL_Texture* tex_win = SDL_CreateTextureFromSurface(rend, you_win);
+      
     //SDL_Texture* tex_monster = SDL_CreateTextureFromSurface(rend, monster);
 
 	// limpia la memoria principal
@@ -1046,10 +1055,8 @@ int main(){
 	SDL_FreeSurface(door);
     SDL_FreeSurface(start);
 	SDL_FreeSurface(goal);
-    SDL_FreeSurface(easy);
-    SDL_FreeSurface(medium);
-    SDL_FreeSurface(hard);
-    SDL_FreeSurface(select_label);
+    SDL_FreeSurface(game_over);
+    SDL_FreeSurface(you_win);
     //SDL_FreeSurface(monster);
 
 	// permite controlar la posición de los sprites en pantalla
@@ -1059,10 +1066,8 @@ int main(){
 	SDL_Rect dest_door;
     SDL_Rect dest_start;
 	SDL_Rect dest_goal;
-    SDL_Rect dest_easy;
-    SDL_Rect dest_medium;
-    SDL_Rect dest_hard;
-    SDL_Rect dest_select;
+    SDL_Rect dest_game_over;
+    SDL_Rect dest_you_win;
     //SDL_Rect dest_monster;
 
 	// conecta las texturas con dest para controlar su posición
@@ -1072,13 +1077,13 @@ int main(){
 	SDL_QueryTexture(tex_door, NULL, NULL, &dest_door.w, &dest_door.h);
     SDL_QueryTexture(tex_start, NULL, NULL, &dest_start.w, &dest_start.h);
     SDL_QueryTexture(tex_goal, NULL, NULL, &dest_goal.w, &dest_goal.h);
-    SDL_QueryTexture(tex_easy, NULL, NULL, &dest_easy.w, &dest_easy.h);
-    SDL_QueryTexture(tex_medium, NULL, NULL, &dest_medium.w, &dest_medium.h);
-    SDL_QueryTexture(tex_hard, NULL, NULL, &dest_hard.w, &dest_hard.h);
-    SDL_QueryTexture(tex_select, NULL, NULL, &dest_select.w, &dest_select.h);
+    SDL_QueryTexture(tex_game_over, NULL, NULL, &dest_game_over.w, &dest_game_over.h);
+    SDL_QueryTexture(tex_win, NULL, NULL, &dest_you_win.w, &dest_you_win.h);
     //SDL_QueryTexture(tex_monster, NULL, NULL, &dest_monster.w, &dest_monster.h);
 
 	// ajusta el ancho y alto de los sprites
+
+    
 	dest_hero.w = CELL;
 	dest_hero.h = CELL;
 
@@ -1097,18 +1102,11 @@ int main(){
     dest_goal.w = CELL;
     dest_goal.h = CELL;
 
-    dest_easy.w *= 1.3; 
-    dest_easy.h *= 1.3; 
+    dest_you_win.w /= 5;
+    dest_you_win.h /= 5;
 
-    dest_medium.w *= 1.3; 
-    dest_medium.h *= 1.3; 
-
-    dest_hard.w *= 1.3; 
-    dest_hard.h *= 1.3; 
-
-    dest_select.w *= 0.8;
-    dest_select.h *= 0.8;
-
+    //dest_game_over.w = 1;
+    //dest_game_over.h  = 1;
 
     //dest_monster.w = CELL;
     //dest_monster.h = CELL;
@@ -1119,18 +1117,11 @@ int main(){
 	// establece la posición inicial en y del sprite
 	dest_hero.y = start_j*CELL;
 
-    // establece la posición inicial en 'x'y 'y' de los elementos del menú
-    dest_easy.x = (SCREEN - dest_easy.w) / 2;
-	dest_easy.y = 230;
+    dest_game_over.x =  SCREEN / 3;
+    dest_game_over.y = SCREEN / 4;
 
-    dest_medium.x = (SCREEN - dest_medium.w) / 2;
-	dest_medium.y = 400;
-
-    dest_hard.x = (SCREEN - dest_hard.w) / 2;
-	dest_hard.y = 550;
-
-	dest_select.x = (SCREEN - dest_select.w) / 2;
-	dest_select.y = 70;
+    dest_you_win.x =  SCREEN / 3;
+    dest_you_win.y = SCREEN / 4;
 
 	// controla el ciclo de animación
 	int close = 0;
@@ -1139,10 +1130,17 @@ int main(){
 	//int speed = 300;
 
     SDL_Point mousePosition;
+  
 
 	// ciclo de animación
 	while (!close) {
 		SDL_Event event;
+
+        current_room_player = getRoomPointerByID(current_room_id);
+        if(current_room_player->type == Goal){
+            current_game_state = GAME_STATE_VICTORY;
+            //close = 1;
+        }
 
 		// administración de eventos
 		while (SDL_PollEvent(&event)) {
@@ -1152,41 +1150,10 @@ int main(){
 				// manejando el botón de cerrar
 				close = 1;
 				break;
-            
-            case SDL_MOUSEBUTTONDOWN:
-                mousePosition.x = event.motion.x; 
-                mousePosition.y = event.motion.y;
-
-                /*if(current_game_state == 1){
-                    if (SDL_PointInRect(&mousePosition, &dest_hero)) {
-                        //printf("CLick on surface\n");
-                        current_game_state = 0;       
-                        break;               
-                    }
-                }*/
-
-                if(current_game_state == 0){
-                    if (SDL_PointInRect(&mousePosition, &dest_easy)) {
-                        printf("CLick on easy\n");
-                        pressedButtonMenu(event.button, (int) EASY);  
-                        break;                      
-                    }
-                    if (SDL_PointInRect(&mousePosition, &dest_medium)) {
-                        printf("CLick on medium\n");
-                        pressedButtonMenu(event.button, (int) MEDIUM);
-                        break;
-                    }
-                    if (SDL_PointInRect(&mousePosition, &dest_hard)) {
-                        printf("CLick on hard\n");
-                        pressedButtonMenu(event.button, (int) HARD);
-                        break;
-                    }
-                }
-                break;
 
 			case SDL_KEYDOWN:
 				// API de teclado para presionar teclas
-                if(current_game_state == 1){
+                if(current_game_state == GAME_STATE_RUN){
 
                     switch (event.key.keysym.scancode) {
                     case SDL_SCANCODE_W:
@@ -1202,6 +1169,7 @@ int main(){
                                     current_room_id = next_room_id;
                                     dest_hero.y -= CELL;
                                 }
+                                
                             }
                         }
                         break;
@@ -1257,6 +1225,8 @@ int main(){
                         break;
                     }
                 }
+                default:
+                    break;
 			}
 		}
 
@@ -1280,7 +1250,13 @@ int main(){
 		SDL_RenderClear(rend);
 
         switch(current_game_state){
-            case 1:
+            case GAME_STATE_OVER:
+                SDL_RenderCopy(rend, tex_game_over, NULL, &dest_game_over);
+                break;
+            case GAME_STATE_VICTORY: 
+                SDL_RenderCopy(rend, tex_win, NULL, &dest_you_win);
+                break;
+            case GAME_STATE_RUN:
                 for(int i = 0; i < N; i++) {
                     for(int j = 0; j < N; j++) {
                         room_to_render = &game_map[i][j];
@@ -1331,13 +1307,9 @@ int main(){
                     }
                 }
                 SDL_RenderCopy(rend, tex_hero, NULL, &dest_hero);
-                break;
-            case 0:
-                SDL_RenderCopy(rend, tex_easy, NULL, &dest_easy);
-                SDL_RenderCopy(rend, tex_medium, NULL, &dest_medium);
-                SDL_RenderCopy(rend, tex_hard, NULL, &dest_hard);
-                SDL_RenderCopy(rend, tex_select, NULL, &dest_select);
-                break;           
+                break;  
+            default:
+                break;        
         }
 		
 
@@ -1355,10 +1327,6 @@ int main(){
 	SDL_DestroyTexture(tex_door);
     SDL_DestroyTexture(tex_start);
 	SDL_DestroyTexture(tex_goal);
-    SDL_DestroyTexture(tex_easy);
-    SDL_DestroyTexture(tex_medium);
-    SDL_DestroyTexture(tex_hard);
-	SDL_DestroyTexture(tex_select);
 
 	// destruye el renderizador
 	SDL_DestroyRenderer(rend);
@@ -1369,24 +1337,35 @@ int main(){
 	// cierra SDL
 	SDL_Quit();
 
+
     return 0;
 }
 
 void pressedButtonMenu(SDL_MouseButtonEvent b, int newN){
     if(b.button == SDL_BUTTON_LEFT){
-        //N = newN;
-        switch(N){
-            case 10:
-                //DOOR = 10;
-                break;
-            case 20:
-                //DOOR = 22;
-                break;
-            case 30:
-                //DOOR = 23;
-                break;
+        N = newN;
+        while(generateMap(N)==-1){
+            printf("Reintentando generar mapa...\n");
         }
+        //N = newN;
+        printf("inside if pressedButton, newN: %d\n", N);
+        if(newN == 10){
+            DOOR = 10;
+        }
+        else if(newN == 20){
+            DOOR = 22;
+        }
+        else{
+            DOOR = 23;
+        }
+        CELL = (int) SCREEN / N;
+        printf("SCREEN: %d\n", SCREEN);
+        printf("CELL: %d\n", CELL);
+        printf("DOOR: %d\n", DOOR);
+        /*while(generateMap(N)==-1){
+            printf("Reintentando generar mapa...\n");
+        }*/
         current_game_state = 1;
+        printf("out of switch \n");
     }
 }
-
