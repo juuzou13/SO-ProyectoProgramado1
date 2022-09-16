@@ -32,6 +32,7 @@ void randomDestination(int * destinations) {
 int getNextRoomForMonster(int id)
 {
     int currentIndex = 0;
+    int canProceedToThisRoom = 0;
 
     struct room *tempRoom = getRoomPointerByID(id);
     struct room *tempNeighbour;
@@ -42,19 +43,27 @@ int getNextRoomForMonster(int id)
     int neighbourID;
     for (int i = 0; i < 4; i++)
     {
+        canProceedToThisRoom = 0;
         currentIndex = destinations[i];
-        neighbourID = getNeighbour(id, currentIndex);
+        neighbourID = getNeighbour(id, currentIndex); //Se obtiene el numero de cuarto candidato a entrar
         if (neighbourID != -1)
         {
-
-            pthread_mutex_lock(&lock);
-            tempNeighbour = getRoomPointerByID(neighbourID);
-            pthread_mutex_unlock(&lock);
-
-            if (tempRoom->doors[currentIndex].state == Open && tempNeighbour->occupied == 0 && tempNeighbour->type != Start && tempNeighbour->type != Goal && tempNeighbour->type != Wall)
+            if (tempRoom->doors[currentIndex].state == Open)
+            {
+                //! Region critica
+                pthread_mutex_lock(&lock); //Aqui el hilo monstruo obtiene el estado de una habitacion de manera sincornizada y revisa si esta ocupada o no
+                tempNeighbour = getRoomPointerByID(neighbourID); 
+                if(tempNeighbour->occupied == 0 && tempNeighbour->type != Start && tempNeighbour->type != Goal && tempNeighbour->type != Wall){
+                    canProceedToThisRoom = 1;
+                }
+                pthread_mutex_unlock(&lock);
+            }
+            
+            if(canProceedToThisRoom)
             {
                 return neighbourID;
             }
+            
         }
     }
     return -1;
@@ -74,11 +83,11 @@ void * monsterLife(void * m){
         r = rand() % 100;
         int loc = getNextRoomForMonster(mon->location);
 
-        if(loc!=-1){
-            //printf("Found (%d), a free neighbour of monster %d, located in %d\n", loc, mon->id, mon->location);
+        if(loc!=-1){ //Si hay una habitacion libre
             setOccupied(mon->location, 0);
             monsterMove(mon, loc);
             setOccupied(loc, 1);
+            //Esto es temporal
             if(mon->id==0){
                 monster0Movements[monster0MovementsIndex] = loc;
                 monster0MovementsIndex++;
@@ -86,23 +95,27 @@ void * monsterLife(void * m){
                 monster1Movements[monster1MovementsIndex] = loc;
                 monster1MovementsIndex++;
             }
-        }else{
-            //printf("No free neighbours found for monster %d, located in %d\n", mon->id, mon->location);
+            //-----------------------------------------------------
+            //printf("Found (%d), a free neighbour of monster %d, located in %d\n", loc, mon->id, mon->location);
+
+        }else{ //Si no hay habitaciones libres, el monstruo se queda quieto
             changeMonsterState(mon, IDLE);
-        }            
-        //printf("\n\n-------------------------------------------------------------------------\n\n");
-        pthread_mutex_lock(&lock);
-        system("clear");
-        drawTemporalMap();
+            //printf("No free neighbours found for monster %d, located in %d\n", mon->id, mon->location);
+        }       
 
-        pthread_mutex_unlock(&lock);
+        // .Todo esto es temporal
+            pthread_mutex_lock(&lock);
+            system("clear");
+            drawTemporalMap();
+            pthread_mutex_unlock(&lock);
 
-        printf("Monster 0 path:\n");
-        printArray(monster0Movements, monster0MovementsIndex);   
-        printf("Monster 1 path:\n");
-        printArray(monster1Movements, monster1MovementsIndex);
-        //sem_post(&semaph);
-        sleep((rand()%3)+1);
+            printf("Monster 0 path:\n");
+            printArray(monster0Movements, monster0MovementsIndex);   
+            printf("Monster 1 path:\n");
+            printArray(monster1Movements, monster1MovementsIndex);
+            //sem_post(&semaph);
+            sleep((rand()%3)+1);
+        // ---------------------------------------------------------
     }
     
     printf("Monster %d is dead\n", mon->id);
@@ -162,17 +175,16 @@ int main(){
         input_valid = 0;
     }
 
-    switch (eleccion)
-    {
-    case 1:
-        N = EASY;
-        break;
-    case 2:
-        N = MEDIUM;
-        break;
-    case 3:
-        N = HARD;
-        break;
+    switch (eleccion){
+        case 1:
+            N = EASY;
+            break;
+        case 2:
+            N = MEDIUM;
+            break;
+        case 3:
+            N = HARD;
+            break;
     }
     
     while(generateMap(N)==-1){
@@ -190,11 +202,7 @@ int main(){
 
     struct monster monsters[monsterCount];
 
-    int freeRooms[N];
-    int freeRoomsSize = 0;
-
     //printf("Looking for free rooms...\n");
-
     //getMapDetails();
 
     for(int m; m < monsterCount; m++){
