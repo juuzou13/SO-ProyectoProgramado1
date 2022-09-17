@@ -8,6 +8,7 @@
 #define false 0
 
 enum MonsterStates { IDLE, WANDER, ATTACK, DEAD };
+pthread_mutex_t lock;
 
 struct monster {
     int id;
@@ -71,6 +72,32 @@ int attackHero(struct monster *m, struct hero *h) {
 
 // Hero Functions
 
+void* updateTrap(void* h) {
+    struct hero *hero = (struct hero*) h;
+    int roomID = hero->location;
+    printf("roomID: %d\n", roomID);
+    struct room *room = getRoomPointerByID(roomID);
+    printf("Trap in room %d is now active\n", roomID);
+
+    float waitTime = ((rand()%15-5+1)+5);
+    waitTime /= 10;
+
+    printf("Trap will activate in %f seconds\n", waitTime);
+
+    sleep(waitTime);
+
+    pthread_mutex_lock(&lock);
+    if (room->isHeroInRoom){
+        hero->hp -= 1;
+        printf("Hero has been hit by trap in room %d\n", roomID);
+        printf("Hero has %d hp left\n", hero->hp);
+    }
+    pthread_mutex_unlock(&lock);
+    printf("Trap in room %d has been triggered\n", roomID);
+    room->trap = 0;
+    pthread_exit(0);
+}
+
 int heroMove(struct hero *h, int location) {
     // changeMonsterState(m, WANDER);
     //printf("Monster %d is moving to %d\n", m->id, location);
@@ -78,6 +105,10 @@ int heroMove(struct hero *h, int location) {
         return false;
     }
     h->location = location;
+    if (getRoomPointerByID(h->location)->trap == 1){
+        pthread_t thread;
+        pthread_create(&thread, NULL, updateTrap, h);
+    }
     //printf("Monster %d is now in %d\n", m->id, m->location);
 
     // changeMonsterState(m, IDLE);

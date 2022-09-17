@@ -944,6 +944,8 @@ int generateMap()
 
     struct room *startRoom = getRoomPointerByID(startRoomID);
     startRoom->type = Start;
+    startRoom->trap = 0;
+    startRoom->treasure = 0;
     startRoom->occupiedByMonster = 0;
 
     drawTemporalMap();
