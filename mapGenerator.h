@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <unistd.h>
 
 #define true 1
 #define false 0
@@ -704,7 +705,7 @@ int generateMap()
 
     createMap(startRoomID, total);
 
-    drawTemporalMap();
+    //drawTemporalMap();
 
     int blockedIds[total];
     int blockedIdsSize = 0;
@@ -796,14 +797,20 @@ int generateMap()
     memcpy(camino, touredIds, sizeof(touredIds));
     caminoSize = touredIdsSize;
 
-    drawTemporalMap();
+    //drawTemporalMap();
 
     connectRooms(touredIds, connections, touredIdsSize);
 
-    drawTemporalMap();
+    //drawTemporalMap();
 
     int possibleDoors[4];
     int possibleDoorsSize = 0;
+
+    struct room *startRoom = getRoomPointerByID(startRoomID);
+    startRoom->type = Start;
+    startRoom->trap = 0;
+    startRoom->treasure = 0;
+    startRoom->occupiedByMonster = 0;
 
     for (int i = 0; i < touredIdsSize; i++)
     {
@@ -889,7 +896,7 @@ int generateMap()
 
     int opporunities = 500;
 
-    drawTemporalMap();
+    //drawTemporalMap();
 
     while (0 < deadEnds || caminoSize < N)
     {
@@ -942,13 +949,9 @@ int generateMap()
         }
     }
 
-    struct room *startRoom = getRoomPointerByID(startRoomID);
-    startRoom->type = Start;
-    startRoom->trap = 0;
-    startRoom->treasure = 0;
-    startRoom->occupiedByMonster = 0;
+    
 
-    drawTemporalMap();
+    //drawTemporalMap();
 
     printf("Camino de habitaciones hasta el final (%d):\n", caminoSize - actualDeadEnds);
     printArray(camino, caminoSize - actualDeadEnds);
@@ -959,6 +962,9 @@ int generateMap()
 
     printf("Start Room: %d\n", startRoomID);
     printf("Goal Room: %d\n", goalRoomID);
+
+    drawTemporalMap();
+    printf("Mapa generado con exito!\n");
 
     return startRoomID;
 }
