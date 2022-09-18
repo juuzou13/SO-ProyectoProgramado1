@@ -8,14 +8,16 @@
 #define true 1
 #define false 0
 
+#define GAME_STATE_RUN 0
+#define GAME_STATE_OVER 1
+#define GAME_STATE_VICTORY 2
+
 #define RED "\x1b[31m"
-#define CYAN "\x1b[36m"
 #define GREEN "\x1b[32m"
-
 #define YELLOW "\x1b[33m"
-#define MAGENTA "\x1b[35m"
 #define BLUE "\x1b[34m"
-
+#define MAGENTA "\x1b[35m"
+#define CYAN "\x1b[36m"
 #define DEFAULT "\x1b[0m"
 
 #define EASY 10
@@ -59,6 +61,7 @@ struct room
 
     int treasure;
     int trap;
+    int activated_trap;
 
     int occupiedByMonster;
     int monsterInRoomID;
@@ -67,8 +70,10 @@ struct room
 
 };
 
-short N;
 struct room **game_map;
+int current_room_id;
+int current_game_state = GAME_STATE_RUN;
+int N;
 
 int getNeighbour(int currID, int direction)
 {
@@ -179,7 +184,7 @@ void getRoomDetailsByID(int id)
 {
     if (id > N * N || id < 1)
     {
-        printf("No existe habitacion con dicho id.\n");
+        printf("No existe habitacion con dicho id, getRoomDetailsByID.\n");
     }
     else
     {
@@ -193,7 +198,7 @@ int setOccupied(int id, int state)
 {
     if (id > N * N || id < 1)
     {
-        printf("No existe habitacion con dicho id.\n");
+        printf("No existe habitacion con dicho id, setOccupied.\n");
         return -1;
     }
     else
@@ -201,6 +206,7 @@ int setOccupied(int id, int state)
         int i = (id - 1) / N;
         int j = (id - 1) % N;
         game_map[i][j].occupiedByMonster = state;
+        //printf("Cuarto %d ocupado: %d-%d.\n", id, i, j);
         return 0;
     }
 }
@@ -209,7 +215,7 @@ int setMonsterID(int roomID, int monsterID)
 {
     if (roomID > N * N || roomID < 1)
     {
-        printf("No existe habitacion con dicho id.\n");
+        printf("No existe habitacion con dicho id, setMonsterID.\n");
         return -1;
     }
     else
@@ -225,7 +231,7 @@ int setHeroInRoom(int id, int state)
 {
     if (id > N * N || id < 1)
     {
-        printf("No existe habitacion con dicho id.\n");
+        printf("No existe habitacion con dicho id., setHeroInRoom\n");
         return -1;
     }
     else
@@ -240,7 +246,7 @@ int setHeroInRoom(int id, int state)
 int isHeroInRoom(int roomID){
     if (roomID > N * N || roomID < 1)
     {
-        printf("No existe habitacion con dicho id.\n");
+        printf("No existe habitacion con dicho id, isHeroInRoom.\n");
         return -1;
     }
     else
@@ -274,7 +280,7 @@ struct room *getRoomPointerByID(int id)
 {
     if (id > N * N || id < 1)
     {
-        printf("No existe habitacion con dicho id.\n");
+        printf("No existe habitacion con dicho id, getRoomPointerByID.\n");
     }
     else
     {
@@ -322,7 +328,7 @@ int isInArray(int *array, int size, int element)
     return false;
 }
 
-isDoorOpen(int id, int cardinal)
+int isDoorOpen(int id, int cardinal)
 {
     int i = (id - 1) / N;
     int j = (id - 1) % N;
@@ -613,6 +619,8 @@ void createMap(int startRoomID, int total)
 
             room->id = (j + 1) + N * i;
             idList[id - 1] = (j + 1) + N * i;
+
+            room->activated_trap = 0;
 
             int probability = rand() % 10;
 
@@ -949,8 +957,6 @@ int generateMap()
         }
     }
 
-    
-
     //drawTemporalMap();
 
     printf("Camino de habitaciones hasta el final (%d):\n", caminoSize - actualDeadEnds);
@@ -962,9 +968,6 @@ int generateMap()
 
     printf("Start Room: %d\n", startRoomID);
     printf("Goal Room: %d\n", goalRoomID);
-
-    drawTemporalMap();
-    printf("Mapa generado con exito!\n");
 
     return startRoomID;
 }

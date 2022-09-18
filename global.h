@@ -85,7 +85,8 @@ void* updateTrap(void* h) {
     printf("Trap will activate in %f seconds\n", waitTime);
 
     sleep(waitTime);
-
+    room->activated_trap = 1;
+    
     pthread_mutex_lock(&lock);
     if (room->isHeroInRoom){
         hero->hp -= 1;
@@ -124,9 +125,14 @@ int isHeroInMonstersLocation(struct hero *h, struct monster *m) {
 
 int attackMonster(struct hero *h, struct monster *m) {
     // changeMonsterState(m, ATTACK);
-    printf("Hero is attacking monster %d\n", m->id);
-    m->hp -= h->atk;
+    
+    printf("Hero is attacking monster %d with atk: %d\n", m->id, h->atk);
+    if(h->atk >= 1) {
+        m->hp -= 1;
+        h->atk -= 1;
+    }
     printf("Monster has %d hp left\n", m->hp);
+    printf("Hero has %d atk left\n", h->atk);
     // changeMonsterState(m, IDLE);
     return true;
 }
