@@ -79,6 +79,7 @@ void* updateTrap(void* h) {
     int roomID = hero->location;
     printf("roomID: %d\n", roomID);
     struct room *room = getRoomPointerByID(roomID);
+    pthread_mutex_t roomLock = room->room_lock;
     printf("Trap in room %d is now active\n", roomID);
 
     float waitTime = ((rand()%15-5+1)+5);
@@ -89,13 +90,14 @@ void* updateTrap(void* h) {
     sleep(waitTime);
     room->activated_trap = 1;
     
-    pthread_mutex_lock(&lock);
+    pthread_mutex_lock(&roomLock);
     if (room->isHeroInRoom){
         hero->hp -= 1;
         printf("Hero has been hit by trap in room %d\n", roomID);
         printf("Hero has %d hp left\n", hero->hp);
     }
-    pthread_mutex_unlock(&lock);
+    pthread_mutex_unlock(&roomLock);
+
     printf("Trap in room %d has been triggered\n", roomID);
     room->trap = 0;
     pthread_exit(0);
