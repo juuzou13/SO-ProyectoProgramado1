@@ -487,7 +487,7 @@ int main()
     monster = IMG_Load("img/skeleton.jpg");
     open_chest = IMG_Load("img/open_chest.png");
     closed_chest = IMG_Load("img/closed_chest.png");
-    trap = IMG_Load("img/trap.png");
+    trap = IMG_Load("img/fire.png");
     hero_life_icon = IMG_Load("img/heart.png");
     hero_attack_icon = IMG_Load("img/attack.png");
 
@@ -648,11 +648,12 @@ int main()
     dest_open_chest.h = CELL;
     dest_closed_chest.w = CELL;
     dest_closed_chest.h = CELL;
-    dest_trap.w = CELL;
-    dest_trap.h = CELL;
+
+    dest_trap.w = CELL*1.5;
+    dest_trap.h = CELL*1.5;
 
     int indicators_offset = CELL/4;
-    int icons_size = CELL/4;
+    int icons_size = CELL/2;
     int icons_y = CELL/4;
 
     dest_hero_life_icon.x = icons_size;
@@ -683,11 +684,11 @@ int main()
 
     dest_hero.y = SCREEN_H / 2 - dest_hero.h/2;
 
-    dest_game_over.x = SCREEN_W / 3;
-    dest_game_over.y = SCREEN_H / 4;
+    dest_game_over.x = SCREEN_W / 2 - dest_game_over.w/2;
+    dest_game_over.y = SCREEN_H / 2 - dest_game_over.h/2;
 
-    dest_you_win.x = SCREEN_W / 3;
-    dest_you_win.y = SCREEN_H / 4;
+    dest_you_win.x = SCREEN_W / 2 - dest_you_win.w/2;
+    dest_you_win.y = SCREEN_H / 2 - dest_you_win.h/2;
 
     SDL_Point mousePosition;
 
@@ -898,7 +899,7 @@ int main()
             if (current_room_player->type == Trap && current_room_player->trap == 1)
             {
                 dest_trap.x = SCREEN_W / 2 - SCREEN_W / 4;
-                dest_trap.y = (SCREEN_H / 2 - CELL) + SCREEN_H / 4;
+                dest_trap.y = SCREEN_H / 2 - dest_trap.h / 2;
                 SDL_RenderCopy(rend, tex_trap, NULL, &dest_trap);
             }
             if(player->hp < prevHealth){
@@ -934,7 +935,7 @@ int main()
 
         SDL_RenderPresent(rend);
 
-        SDL_Delay(1000 / 120);
+        SDL_Delay(100);
     }
 
     SDL_DestroyTexture(tex_hero);
