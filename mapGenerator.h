@@ -4,6 +4,7 @@
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #define true 1
 #define false 0
@@ -54,10 +55,12 @@ struct door
 
 struct room
 {
+    
     int id;
     int type;
     struct door doors[4];
     int openDoorsLeft;
+    pthread_mutex_t room_lock;
 
     int treasure;
     int trap;
@@ -653,6 +656,12 @@ void createMap(int startRoomID, int total)
             game_map[i][j] = *room;
         }
     }
+}
+
+pthread_mutex_t *getRoomLock(int roomID)
+{
+    struct room *room = getRoomPointerByID(roomID);
+    return &room->room_lock;
 }
 
 int canThisDoorBeOpened(int currentRoomID, int doorDirection)

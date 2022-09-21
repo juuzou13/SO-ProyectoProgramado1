@@ -11,6 +11,7 @@ enum MonsterStates { IDLE, WANDER, ATTACK, DEAD };
 pthread_mutex_t lock;
 
 struct monster {
+    pthread_mutex_t monsterLock;
     int id;
     int hp;
     int atk;
@@ -19,6 +20,7 @@ struct monster {
 };
 
 struct hero {
+    pthread_mutex_t heroLock;
     int hp;
     int atk;
     int location;
@@ -111,7 +113,7 @@ int heroMove(struct hero *h, int location) {
         pthread_create(&thread, NULL, updateTrap, h);
     }
     //printf("Monster %d is now in %d\n", m->id, m->location);
-
+    
     // changeMonsterState(m, IDLE);
     return true;
 }
@@ -127,12 +129,18 @@ int attackMonster(struct hero *h, struct monster *m) {
     // changeMonsterState(m, ATTACK);
     
     printf("Hero is attacking monster %d with atk: %d\n", m->id, h->atk);
-    if(h->atk >= 1) {
-        m->hp -= 1;
-        h->atk -= 1;
-    }
+    m->hp -= h->atk;
     printf("Monster has %d hp left\n", m->hp);
     printf("Hero has %d atk left\n", h->atk);
+
     // changeMonsterState(m, IDLE);
     return true;
+}
+
+pthread_mutex_t *getMonsterLock(struct monster *m) {
+    return &m->monsterLock;
+}
+
+pthread_mutex_t *getHeroLock(struct hero *h) {
+    return &h->heroLock;
 }
