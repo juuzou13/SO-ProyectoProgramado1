@@ -272,6 +272,65 @@ int safelyMoveHero(int roomToMove)
 int slashed;
 int prevHealth;
 
+int createCheckerboard(int scale, SDL_Rect dest_goal, SDL_Renderer * renderer){
+    int scaleMap = scale;
+    int startPoint = SCREEN_W - scaleMap * N;
+
+    int even = 0;
+    int evenStart = 0;
+
+    int relX = 0;
+    int relY = 0;
+
+    for(int y = 0; y < N*scaleMap; y=y+scaleMap){
+        if(evenStart>0){
+            evenStart = 0;
+            even = 0;
+        }else{
+            evenStart = 1;
+            even = 1;
+        }
+        relX = 0;
+        for(int x = startPoint; x < SCREEN_W; x=x+scaleMap){
+            dest_goal.w = scaleMap;
+            dest_goal.h = scaleMap;
+
+            dest_goal.x = x;
+            dest_goal.y = y;
+
+            if(even>0){
+                even = 0;
+            }else{
+                even = 1;
+            }
+            //printf("x: %d, y: %d, even: %d\n", relX, relY, even);
+            
+            if(game_map[relY][relX].type != Wall){
+                if(game_map[relY][relX].isHeroInRoom){
+                    SDL_SetRenderDrawColor(renderer, 255, 100, 200, 255);
+                }else if(game_map[relY][relX].type == Start){
+                    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+
+                }else if(game_map[relY][relX].type == Goal){
+                    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+
+                }else{
+                    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+                }
+                    
+            }else{
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+            }
+            
+            SDL_RenderDrawRect(renderer, &dest_goal);
+            SDL_RenderFillRect(renderer, &dest_goal);
+            relX++;
+        }
+        relY++;
+    }
+
+}
+
 int main()
 {
 
@@ -389,8 +448,8 @@ int main()
     {
         printf("Error inicializando SDL: %s\n", SDL_GetError());
     }
-    SCREEN_W = 1920;
-    SCREEN_H = 1080;
+    //SCREEN_W = 1920;
+    //SCREEN_H = 1080;
 
     CELL = SCREEN_W / 16;
 
@@ -558,6 +617,9 @@ int main()
     SDL_Rect dest_hero_attack_icon;
     SDL_Rect dest_spikes;
     SDL_Rect dest_hiddenSpikes;
+    SDL_Rect dest_rect;
+
+    
 
     SDL_QueryTexture(tex_hero, NULL, NULL, &dest_hero.w, &dest_hero.h);
     SDL_QueryTexture(tex_heroDMG, NULL, NULL, &dest_hero.w, &dest_hero.h);
@@ -604,8 +666,7 @@ int main()
     dest_start.w = CELL;
     dest_start.h = CELL;
 
-    dest_goal.w = CELL;
-    dest_goal.h = CELL;
+    
 
     dest_you_win.w /= 5;
     dest_you_win.h /= 5;
@@ -662,6 +723,8 @@ int main()
     dest_game_over.x = SCREEN_W / 2 - dest_game_over.w / 2;
     dest_game_over.y = SCREEN_H / 2 - dest_game_over.h / 2;
 
+    
+
     dest_you_win.x = SCREEN_W / 2 - dest_you_win.w / 2;
     dest_you_win.y = SCREEN_H / 2 - dest_you_win.h / 2;
 
@@ -669,8 +732,10 @@ int main()
 
     while (!closeWindow)
     {
-        // system("clear");
-        // drawTemporalMap();
+        system("clear");
+        drawTemporalMap();
+        
+
         SDL_Event event;
 
         current_room_player = getRoomPointerByID(current_room_id);
@@ -684,10 +749,16 @@ int main()
         }
 
         SDL_RenderClear(rend);
+
+        
         if (current_game_state == GAME_STATE_RUN)
         {
             SDL_RenderCopy(rend, tex_room, NULL, &dest_room);
         }
+
+        
+
+            
         switch (current_game_state)
         {
         case GAME_STATE_OVER:
@@ -699,6 +770,8 @@ int main()
             closeWindow = true;
             break;
         case GAME_STATE_RUN:
+            createCheckerboard(SCREEN_W*0.006, dest_goal, rend);
+
 
             for (int k = 0; k < 4; k++)
             {
@@ -783,6 +856,9 @@ int main()
                 if (current_room_player->trap == 1)
                 {
                     activateTrap = 1;
+                    SDL_RenderCopy(rend, tex_spikes, NULL, &dest_trap);
+                }else{
+                    activateTrap = 0;
                     SDL_RenderCopy(rend, tex_hiddenSpikes, NULL, &dest_trap);
                 }
             }
@@ -852,6 +928,11 @@ int main()
 
         while (SDL_PollEvent(&event))
         {
+            
+            
+
+
+            SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
             switch (event.type)
             {
 
