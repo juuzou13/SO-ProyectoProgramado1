@@ -74,15 +74,20 @@ int attackHero(struct monster *m, struct hero *h) {
 
 // Hero Functions
 
+int randomInt(int min, int max)
+{
+   return min + rand() % (max+1 - min);
+}
+
 void* updateTrap(void* h) {
     struct hero *hero = (struct hero*) h;
     int roomID = hero->location;
-    printf("roomID: %d\n", roomID);
+    //printf("roomID: %d\n", roomID);
     struct room *room = getRoomPointerByID(roomID);
     pthread_mutex_t roomLock = room->room_lock;
-    printf("Trap in room %d is now active\n", roomID);
+    printf("\nTrap in room %d is now active\n", roomID);
 
-    float waitTime = ((rand()%15-5+1)+5);
+    float waitTime = randomInt(12, 17);
     waitTime /= 10;
 
     printf("Trap will activate in %f seconds\n", waitTime);
@@ -114,6 +119,8 @@ int heroMove(struct hero *h, int location) {
         pthread_t thread;
         pthread_create(&thread, NULL, updateTrap, h);
     }
+    sleep(0.1);
+
     //printf("Monster %d is now in %d\n", m->id, m->location);
     
     // changeMonsterState(m, IDLE);
@@ -130,10 +137,10 @@ int isHeroInMonstersLocation(struct hero *h, struct monster *m) {
 int attackMonster(struct hero *h, struct monster *m) {
     // changeMonsterState(m, ATTACK);
     
-    printf("Hero is attacking monster %d with atk: %d\n", m->id, h->atk);
+    //printf("Hero is attacking monster %d with atk: %d\n", m->id, h->atk);
     m->hp -= h->atk;
-    printf("Monster has %d hp left\n", m->hp);
-    printf("Hero has %d atk left\n", h->atk);
+    printf("\nMonster has %d hp left\n", m->hp);
+    //printf("Hero has %d atk left\n", h->atk);
 
     // changeMonsterState(m, IDLE);
     return true;

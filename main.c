@@ -13,21 +13,13 @@
 
 pthread_mutex_t lock;
 pthread_mutex_t attackingLock;
-sem_t semaph;
+
 struct monster *monsters;
 struct hero *player;
+
 int winner = 0;
 
 int closeWindow = 0;
-
-int monster0Movements[500];
-int monster0MovementsIndex = 0;
-
-int monster1Movements[500];
-int monster1MovementsIndex = 0;
-
-int heroMovements[500];
-int heroMovementsIndex = 0;
 
 int SCREEN_W;
 int SCREEN_H;
@@ -135,21 +127,21 @@ int openChest(struct hero *h)
         int r = rand() % 2;
         if (r == 0)
         {
-            printf("before Hero opened a chest and got +1 attack, actual attack: %d\n", h->atk);
+            //printf("before Hero opened a chest and got +1 attack, actual attack: %d\n", h->atk);
             h->atk = h->atk + 1;
-            printf("after Hero opened a chest and got +1 attack, actual attack: %d\n", h->atk);
+            //printf("after Hero opened a chest and got +1 attack, actual attack: %d\n", h->atk);
         }
         else
         {
             h->hp = h->hp + 1;
-            printf("Hero has %d hp\n", h->hp);
+            //printf("Hero has %d hp\n", h->hp);
         }
         setRoomChestState(h->location, 0);
         return 1;
     }
     else
     {
-        printf("There is no chest in this room\n");
+        //printf("There is no chest in this room\n");
         return 0;
     }
 }
@@ -192,17 +184,6 @@ void *monsterLife(void *m)
             if (loc != -1)
             {
                 monsterMove(mon, loc);
-
-                if (mon->id == 0)
-                {
-                    monster0Movements[monster0MovementsIndex] = loc;
-                    monster0MovementsIndex++;
-                }
-                else if (mon->id == 1)
-                {
-                    monster1Movements[monster1MovementsIndex] = loc;
-                    monster1MovementsIndex++;
-                }
             }
             else
             {
@@ -270,22 +251,13 @@ int safelyMoveHero(int roomToMove)
         heroMove(player, neighbourID);
         sleep(0.1);
 
-        heroMovements[heroMovementsIndex] = neighbourID;
-        heroMovementsIndex++;
         current_room_id = neighbourID;
 
-        printf("Hero moved to room %d\n", player->location);
+        //printf("Hero moved to room %d\n", player->location);
     }
     else
     {
-        if (tempNeighbour->type == Wall)
-        {
-            printf("Hero can't move, there is a wall\n");
-        }
-        else
-        {
-            printf("Hero can't move to this room, there is a monster\n");
-
+        if (tempNeighbour->occupiedByMonster == 1){
             return -1;
         }
     }
@@ -369,14 +341,14 @@ int main()
     unsigned short *screen_size = get_screen_size();
     SCREEN_W = screen_size[0] * 0.75;
     SCREEN_H = screen_size[1] * 0.75;
-    CELL = SCREEN_W / 16;
+    
 
     int startLocation = generateMap(N);
 
     while (startLocation == -1)
     {
         startLocation = generateMap(N);
-        printf("Reintentando generar mapa...\n");
+        //printf("Reintentando generar mapa...\n");
     }
 
     pthread_mutex_init(&lock, NULL);
@@ -415,6 +387,10 @@ int main()
     {
         printf("Error inicializando SDL: %s\n", SDL_GetError());
     }
+    //SCREEN_W = 1920;
+    //SCREEN_H = 1080;
+
+    CELL = SCREEN_W / 16;
 
     SDL_Window *win = SDL_CreateWindow("GAME", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_W, SCREEN_H, 0);
 
@@ -471,19 +447,22 @@ int main()
     SDL_Surface *hero_attack_text;
     SDL_Surface *hero_attack_icon;
 
+    SDL_Surface *spikes;
+    SDL_Surface *hiddenSpikes;
+
     hero = IMG_Load("img/knight.png");
     heroDMG = IMG_Load("img/redKnight.png");
     wall = IMG_Load("img/wall.jpg");
-    room = IMG_Load("img/dungeonfloor.png");
+    room = IMG_Load("img/background.jpg");
 
     deadSymbol = IMG_Load("img/deadMon.png");
 
     door = IMG_Load("img/door.png");
 
-    doorN = IMG_Load("img/N.jpg");
-    doorS = IMG_Load("img/S.jpg");
-    doorE = IMG_Load("img/E.jpg");
-    doorW = IMG_Load("img/W.jpg");
+    doorN = IMG_Load("img/doorTop.png");
+    doorS = IMG_Load("img/doorBottom.png");
+    doorE = IMG_Load("img/doorRight.png");
+    doorW = IMG_Load("img/doorLeft.png");
 
     doorLocked = IMG_Load("img/lock.png");
 
@@ -499,6 +478,9 @@ int main()
     trap = IMG_Load("img/fire.png");
     hero_life_icon = IMG_Load("img/heart.png");
     hero_attack_icon = IMG_Load("img/attack.png");
+
+    spikes = IMG_Load("img/spikes.png");
+    hiddenSpikes = IMG_Load("img/hiddenSpikes.png");
 
     SDL_Texture *tex_hero = SDL_CreateTextureFromSurface(rend, hero);
     SDL_Texture *tex_heroDMG = SDL_CreateTextureFromSurface(rend, heroDMG);
@@ -516,6 +498,9 @@ int main()
 
     SDL_Texture *tex_slash = SDL_CreateTextureFromSurface(rend, slash);
     SDL_Texture *tex_deadSymbol = SDL_CreateTextureFromSurface(rend, deadSymbol);
+
+    SDL_Texture *tex_spikes = SDL_CreateTextureFromSurface(rend, spikes);
+    SDL_Texture *tex_hiddenSpikes = SDL_CreateTextureFromSurface(rend, hiddenSpikes);
 
     SDL_Texture *tex_start = SDL_CreateTextureFromSurface(rend, start);
     SDL_Texture *tex_goal = SDL_CreateTextureFromSurface(rend, goal);
@@ -550,6 +535,9 @@ int main()
     SDL_FreeSurface(trap);
     SDL_FreeSurface(hero_life_icon);
     SDL_FreeSurface(hero_attack_icon);
+    SDL_FreeSurface(spikes);
+    SDL_FreeSurface(hiddenSpikes);
+
 
     SDL_Rect dest_hero;
 
@@ -575,6 +563,8 @@ int main()
     SDL_Rect dest_hero_life_icon;
     SDL_Rect dest_hero_attack_text;
     SDL_Rect dest_hero_attack_icon;
+    SDL_Rect dest_spikes;
+    SDL_Rect dest_hiddenSpikes;
 
     SDL_QueryTexture(tex_hero, NULL, NULL, &dest_hero.w, &dest_hero.h);
     SDL_QueryTexture(tex_heroDMG, NULL, NULL, &dest_hero.w, &dest_hero.h);
@@ -595,6 +585,9 @@ int main()
     SDL_QueryTexture(tex_slash, NULL, NULL, &dest_slash.w, &dest_slash.h);
     SDL_QueryTexture(tex_deadSymbol, NULL, NULL, &dest_monster.w, &dest_monster.h);
 
+    //SDL_QueryTexture(tex_spikes, NULL, NULL, &dest_spikes.w, &dest_spikes.h);
+    //SDL_QueryTexture(tex_hiddenSpikes, NULL, NULL, &dest_hiddenSpikes.w, &dest_hiddenSpikes.h);
+
     SDL_QueryTexture(tex_start, NULL, NULL, &dest_start.w, &dest_start.h);
     SDL_QueryTexture(tex_goal, NULL, NULL, &dest_goal.w, &dest_goal.h);
     SDL_QueryTexture(tex_game_over, NULL, NULL, &dest_game_over.w, &dest_game_over.h);
@@ -606,8 +599,8 @@ int main()
     SDL_QueryTexture(tex_hero_life_icon, NULL, NULL, &dest_hero_life_icon.w, &dest_hero_life_icon.h);
     SDL_QueryTexture(tex_hero_attack_icon, NULL, NULL, &dest_hero_attack_icon.w, &dest_hero_attack_icon.h);
 
-    dest_hero.w = CELL * 1.5;
-    dest_hero.h = CELL * 1.5;
+    dest_hero.w = CELL + CELL / 2;
+    dest_hero.h = CELL + CELL / 2;
 
     dest_wall.w = CELL;
     dest_wall.h = CELL;
@@ -617,6 +610,9 @@ int main()
 
     dest_door.w = CELL;
     dest_door.h = CELL;
+
+    dest_lock.w = dest_door.w;
+    dest_lock.h = dest_door.h;
 
     //------------------------  DOORS  ----------------------------
 
@@ -702,6 +698,8 @@ int main()
 
     while (!closeWindow)
     {
+        //system("clear");
+        //drawTemporalMap();
         SDL_Event event;
 
         current_room_player = getRoomPointerByID(current_room_id);
@@ -735,32 +733,86 @@ int main()
             {
                 if (current_room_player->doors[k].state == 1)
                 {
-                    switch (current_room_player->doors[k].cardinal)
+                    int doorOffset = CELL / 3 + CELL / 7;
+                    int card = current_room_player->doors[k].cardinal;
+
+                    struct room *tempNeighbour = getRoomPointerByID(getNeighbour(current_room_player->id, card));
+
+                    switch (card)
                     {
 
                     case 0:
                         dest_door.x = SCREEN_W / 2 - dest_door.w / 2;
-                        dest_door.y = 0;
+                        dest_door.y = 0 + doorOffset;
                         SDL_RenderCopy(rend, tex_doorN, NULL, &dest_door);
+                        
+                        if (tempNeighbour->occupiedByMonster == 1 && tempNeighbour->type != Wall)
+                        {
+                            dest_lock.x = dest_door.x;
+                            dest_lock.y = dest_door.y;
+                            SDL_RenderCopy(rend, tex_doorLock, NULL, &dest_lock);
+                        }
+
                         break;
                     case 1:
                         dest_door.x = SCREEN_W / 2 - dest_door.w / 2;
-                        dest_door.y = SCREEN_H - dest_door.h;
+                        dest_door.y = SCREEN_H - dest_door.h - doorOffset;
                         SDL_RenderCopy(rend, tex_doorS, NULL, &dest_door);
+
+
+                        //pthread_mutex_lock(&currRoomLock2);
+
+                        if (tempNeighbour->occupiedByMonster == 1 && tempNeighbour->type != Wall)
+                        {
+                            dest_lock.x = dest_door.x;
+                            dest_lock.y = dest_door.y;
+                            SDL_RenderCopy(rend, tex_doorLock, NULL, &dest_lock);
+                        }
+
+                        //pthread_mutex_unlock(&currRoomLock2);
+
                         break;
                     case 2:
-                        dest_door.x = SCREEN_W - dest_door.w;
+                        dest_door.x = SCREEN_W - dest_door.w - doorOffset;
                         dest_door.y = SCREEN_H / 2 - dest_door.h / 2;
                         SDL_RenderCopy(rend, tex_doorE, NULL, &dest_door);
+
+                        if (tempNeighbour->occupiedByMonster == 1 && tempNeighbour->type != Wall)
+                        {
+                            dest_lock.x = dest_door.x;
+                            dest_lock.y = dest_door.y;
+                            SDL_RenderCopy(rend, tex_doorLock, NULL, &dest_lock);
+                        }
+
                         break;
                     case 3:
-                        dest_door.x = 0;
+                        dest_door.x = 0+doorOffset;
                         dest_door.y = SCREEN_H / 2 - dest_door.h / 2;
                         SDL_RenderCopy(rend, tex_doorW, NULL, &dest_door);
+
+                        if (tempNeighbour->occupiedByMonster == 1 && tempNeighbour->type != Wall)
+                        {
+                            dest_lock.x = dest_door.x;
+                            dest_lock.y = dest_door.y;
+                            SDL_RenderCopy(rend, tex_doorLock, NULL, &dest_lock);
+                        }
+
                         break;
                     default:
                         break;
                     }
+                }
+            }
+            int activateTrap = 0;
+            if (current_room_player->type == Trap)
+            {
+                dest_trap.x = CELL*3;
+                dest_trap.y = CELL*1.75;
+                dest_trap.h = SCREEN_H*0.6;
+                dest_trap.w = SCREEN_W*0.6;
+                if(current_room_player->trap == 1){
+                    activateTrap = 1;
+                    SDL_RenderCopy(rend, tex_hiddenSpikes, NULL, &dest_trap);
                 }
             }
             if (current_room_player->occupiedByMonster)
@@ -788,16 +840,13 @@ int main()
             {
                 SDL_RenderCopy(rend, tex_open_chest, NULL, &dest_open_chest);
             }
-            if (current_room_player->type == Trap && current_room_player->trap == 1)
-            {
-                dest_trap.x = SCREEN_W / 2 - SCREEN_W / 4;
-                dest_trap.y = SCREEN_H / 2 - dest_trap.h / 2;
-                SDL_RenderCopy(rend, tex_trap, NULL, &dest_trap);
-            }
+            
             if (player->hp < prevHealth)
             {
                 SDL_RenderCopy(rend, tex_heroDMG, NULL, &dest_hero);
-                sleep(0.1);
+                if(activateTrap == 1){
+                    SDL_RenderCopy(rend, tex_spikes, NULL, &dest_trap);
+                }
                 prevHealth = player->hp;
             }
             else
@@ -851,17 +900,14 @@ int main()
                         {
                             int res = safelyMoveHero(0);
 
-                            if (res == -1)
-                            {
-                                dest_lock.x = SCREEN_W / 2 - dest_lock.w / 2;
-                                dest_lock.y = 0;
-                                SDL_RenderCopy(rend, tex_doorLock, NULL, &dest_lock);
-                            }
+                            // if (res == -1)
+                            // {
+                            //     dest_lock.x = SCREEN_W / 2 - dest_lock.w / 2;
+                            //     dest_lock.y = 0;
+                            //     SDL_RenderCopy(rend, tex_doorLock, NULL, &dest_lock);
+                            // }
                         }
-                        else
-                        {
-                            printf("North door is closed\n");
-                        }
+
                         break;
                     case SDL_SCANCODE_A:
                     case SDL_SCANCODE_LEFT:
@@ -869,18 +915,8 @@ int main()
                         if (isDoorOpen(current_room_id, 3))
                         {
                             int res = safelyMoveHero(3);
+                        }
 
-                            if (res == -1)
-                            {
-                                dest_lock.x = 0;
-                                dest_lock.y = SCREEN_H / 2 - dest_lock.h / 2;
-                                SDL_RenderCopy(rend, tex_doorLock, NULL, &dest_lock);
-                            }
-                        }
-                        else
-                        {
-                            printf("West door is closed\n");
-                        }
 
                         break;
                     case SDL_SCANCODE_S:
@@ -888,34 +924,14 @@ int main()
                         if (isDoorOpen(current_room_id, 1))
                         {
                             int res = safelyMoveHero(1);
+                        }
 
-                            if (res == -1)
-                            {
-                                dest_lock.x = SCREEN_W / 2 - dest_lock.w / 2;
-                                dest_lock.y = SCREEN_H - dest_lock.h;
-                                SDL_RenderCopy(rend, tex_doorLock, NULL, &dest_lock);
-                            }
-                        }
-                        else
-                        {
-                            printf("South door is closed\n");
-                        }
                         break;
                     case SDL_SCANCODE_D:
                     case SDL_SCANCODE_RIGHT:
                         if (isDoorOpen(current_room_id, 2))
                         {
                             int res = safelyMoveHero(2);
-                            if (res == -1)
-                            {
-                                dest_lock.x = SCREEN_W - dest_lock.w;
-                                dest_lock.y = SCREEN_H / 2 - dest_lock.h / 2;
-                                SDL_RenderCopy(rend, tex_doorLock, NULL, &dest_lock);
-                            }
-                        }
-                        else
-                        {
-                            printf("East door is closed\n");
                         }
 
                         break;
@@ -923,7 +939,7 @@ int main()
                         openChest(player);
                         break;
                     case SDL_SCANCODE_SPACE:
-                        printf("space pressed \n");
+                        //printf("space pressed \n");
                         printf("Hero is attacking, atk: %d\n", player->atk);
 
                         struct room *current_room = getRoomPointerByID(current_room_id);
@@ -999,7 +1015,6 @@ int main()
     SDL_DestroyRenderer(rend);
 
     sleep(2);
-
 
     SDL_DestroyWindow(win);
 
