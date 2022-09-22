@@ -28,8 +28,13 @@ struct hero {
 
 // Monster Functions
 
+int randomInt(int min, int max)
+{
+   return min + rand() % (max+1 - min);
+}
+
 int randomWaitTime(){
-    float rTime = ((rand() % 5)+1);
+    float rTime = randomInt(1, 5);
     rTime /= 10;
     // printf("Waiting for %f seconds\n", rTime);
     sleep(rTime);
@@ -39,7 +44,10 @@ int randomWaitTime(){
 void changeMonsterState(struct monster *m, int state) {
     m->state = state;
     if(state == IDLE){
-        randomWaitTime();
+        float r = randomInt(15,20);
+        r /= 10;
+        //printf("Sleeping for %f\n", r);
+        sleep(r);
     }
 }
 
@@ -65,6 +73,7 @@ int isMonsterInHerosLocation(struct monster *m, struct hero *h) {
 
 int attackHero(struct monster *m, struct hero *h) {
     changeMonsterState(m, ATTACK);
+    m->state = ATTACK;
     printf("Monster %d is attacking hero\n", m->id);
     h->hp -= m->atk;
     printf("Hero has %d hp left\n", h->hp);
@@ -74,10 +83,7 @@ int attackHero(struct monster *m, struct hero *h) {
 
 // Hero Functions
 
-int randomInt(int min, int max)
-{
-   return min + rand() % (max+1 - min);
-}
+
 
 void* updateTrap(void* h) {
     struct hero *hero = (struct hero*) h;
@@ -138,9 +144,15 @@ int attackMonster(struct hero *h, struct monster *m) {
     // changeMonsterState(m, ATTACK);
     
     //printf("Hero is attacking monster %d with atk: %d\n", m->id, h->atk);
-    m->hp -= h->atk;
-    printf("\nMonster has %d hp left\n", m->hp);
+    if(m->state == IDLE){
+        m->hp -= h->atk;
+        printf("\nMonster has %d hp left\n", m->hp);
+    }else{
+        printf("Monster is not idle, cannot attack\n");
+    }
+    
     //printf("Hero has %d atk left\n", h->atk);
+    sleep(0.1);
 
     // changeMonsterState(m, IDLE);
     return true;

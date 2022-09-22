@@ -127,21 +127,21 @@ int openChest(struct hero *h)
         int r = rand() % 2;
         if (r == 0)
         {
-            //printf("before Hero opened a chest and got +1 attack, actual attack: %d\n", h->atk);
+            // printf("before Hero opened a chest and got +1 attack, actual attack: %d\n", h->atk);
             h->atk = h->atk + 1;
-            //printf("after Hero opened a chest and got +1 attack, actual attack: %d\n", h->atk);
+            // printf("after Hero opened a chest and got +1 attack, actual attack: %d\n", h->atk);
         }
         else
         {
             h->hp = h->hp + 1;
-            //printf("Hero has %d hp\n", h->hp);
+            // printf("Hero has %d hp\n", h->hp);
         }
         setRoomChestState(h->location, 0);
         return 1;
     }
     else
     {
-        //printf("There is no chest in this room\n");
+        // printf("There is no chest in this room\n");
         return 0;
     }
 }
@@ -161,7 +161,7 @@ void *monsterLife(void *m)
 
         if (getRoomPointerByID(mon->location)->isHeroInRoom == 1)
         {
-            action = rand() % 2;
+            action = 1;
         }
         else
         {
@@ -174,9 +174,11 @@ void *monsterLife(void *m)
         {
             printf("Monster is attacking\n");
 
-            pthread_mutex_lock(&currHeroLock);
+            //pthread_mutex_lock(&currHeroLock);
+
             attackHero(mon, player);
-            pthread_mutex_unlock(&currHeroLock);
+
+            //pthread_mutex_unlock(&currHeroLock);
         }
         else
         {
@@ -184,6 +186,7 @@ void *monsterLife(void *m)
             if (loc != -1)
             {
                 monsterMove(mon, loc);
+                
             }
             else
             {
@@ -191,7 +194,6 @@ void *monsterLife(void *m)
             }
         }
 
-        sleep((rand() % 2) + 1);
         if (current_game_state == GAME_STATE_OVER || current_game_state == GAME_STATE_VICTORY || closeWindow == 1)
         {
             pthread_exit(0);
@@ -253,11 +255,12 @@ int safelyMoveHero(int roomToMove)
 
         current_room_id = neighbourID;
 
-        //printf("Hero moved to room %d\n", player->location);
+        // printf("Hero moved to room %d\n", player->location);
     }
     else
     {
-        if (tempNeighbour->occupiedByMonster == 1){
+        if (tempNeighbour->occupiedByMonster == 1)
+        {
             return -1;
         }
     }
@@ -341,14 +344,13 @@ int main()
     unsigned short *screen_size = get_screen_size();
     SCREEN_W = screen_size[0] * 0.75;
     SCREEN_H = screen_size[1] * 0.75;
-    
 
     int startLocation = generateMap(N);
 
     while (startLocation == -1)
     {
         startLocation = generateMap(N);
-        //printf("Reintentando generar mapa...\n");
+        // printf("Reintentando generar mapa...\n");
     }
 
     pthread_mutex_init(&lock, NULL);
@@ -387,8 +389,8 @@ int main()
     {
         printf("Error inicializando SDL: %s\n", SDL_GetError());
     }
-    //SCREEN_W = 1920;
-    //SCREEN_H = 1080;
+    SCREEN_W = 1920;
+    SCREEN_H = 1080;
 
     CELL = SCREEN_W / 16;
 
@@ -418,22 +420,16 @@ int main()
 
     SDL_Surface *hero;
     SDL_Surface *heroDMG;
-
     SDL_Surface *wall;
     SDL_Surface *room;
-
     SDL_Surface *door;
     SDL_Surface *doorN;
     SDL_Surface *doorS;
     SDL_Surface *doorE;
     SDL_Surface *doorW;
-
     SDL_Surface *doorLocked;
-
     SDL_Surface *deadSymbol;
-
     SDL_Surface *slash;
-
     SDL_Surface *start;
     SDL_Surface *goal;
     SDL_Surface *game_over;
@@ -446,7 +442,6 @@ int main()
     SDL_Surface *hero_life_icon;
     SDL_Surface *hero_attack_text;
     SDL_Surface *hero_attack_icon;
-
     SDL_Surface *spikes;
     SDL_Surface *hiddenSpikes;
 
@@ -538,9 +533,7 @@ int main()
     SDL_FreeSurface(spikes);
     SDL_FreeSurface(hiddenSpikes);
 
-
     SDL_Rect dest_hero;
-
     SDL_Rect dest_wall;
     SDL_Rect dest_room;
     SDL_Rect dest_door;
@@ -568,25 +561,19 @@ int main()
 
     SDL_QueryTexture(tex_hero, NULL, NULL, &dest_hero.w, &dest_hero.h);
     SDL_QueryTexture(tex_heroDMG, NULL, NULL, &dest_hero.w, &dest_hero.h);
-
     SDL_QueryTexture(tex_wall, NULL, NULL, &dest_wall.w, &dest_wall.h);
-
     SDL_QueryTexture(tex_room, NULL, NULL, &dest_room.w, &dest_room.h);
-
     SDL_QueryTexture(tex_doorN, NULL, NULL, &dest_door.w, &dest_door.h);
     SDL_QueryTexture(tex_doorS, NULL, NULL, &dest_door.w, &dest_door.h);
     SDL_QueryTexture(tex_doorE, NULL, NULL, &dest_door.w, &dest_door.h);
     SDL_QueryTexture(tex_doorW, NULL, NULL, &dest_door.w, &dest_door.h);
-
     SDL_QueryTexture(tex_door, NULL, NULL, &dest_door.w, &dest_door.h);
-
     SDL_QueryTexture(tex_doorLock, NULL, NULL, &dest_lock.w, &dest_lock.h);
-
     SDL_QueryTexture(tex_slash, NULL, NULL, &dest_slash.w, &dest_slash.h);
     SDL_QueryTexture(tex_deadSymbol, NULL, NULL, &dest_monster.w, &dest_monster.h);
 
-    //SDL_QueryTexture(tex_spikes, NULL, NULL, &dest_spikes.w, &dest_spikes.h);
-    //SDL_QueryTexture(tex_hiddenSpikes, NULL, NULL, &dest_hiddenSpikes.w, &dest_hiddenSpikes.h);
+    // SDL_QueryTexture(tex_spikes, NULL, NULL, &dest_spikes.w, &dest_spikes.h);
+    // SDL_QueryTexture(tex_hiddenSpikes, NULL, NULL, &dest_hiddenSpikes.w, &dest_hiddenSpikes.h);
 
     SDL_QueryTexture(tex_start, NULL, NULL, &dest_start.w, &dest_start.h);
     SDL_QueryTexture(tex_goal, NULL, NULL, &dest_goal.w, &dest_goal.h);
@@ -613,22 +600,6 @@ int main()
 
     dest_lock.w = dest_door.w;
     dest_lock.h = dest_door.h;
-
-    //------------------------  DOORS  ----------------------------
-
-    // dest_doorN.w = CELL;
-    // dest_doorN.h = CELL;
-
-    // dest_doorS.w = CELL;
-    // dest_doorS.h = CELL;
-
-    // dest_doorE.w = CELL;
-    // dest_doorE.h = CELL;
-
-    // dest_doorW.w = CELL;
-    // dest_doorW.h = CELL;
-
-    //---------------------------------------------------------------
 
     dest_start.w = CELL;
     dest_start.h = CELL;
@@ -698,8 +669,8 @@ int main()
 
     while (!closeWindow)
     {
-        //system("clear");
-        //drawTemporalMap();
+        // system("clear");
+        // drawTemporalMap();
         SDL_Event event;
 
         current_room_player = getRoomPointerByID(current_room_id);
@@ -745,7 +716,7 @@ int main()
                         dest_door.x = SCREEN_W / 2 - dest_door.w / 2;
                         dest_door.y = 0 + doorOffset;
                         SDL_RenderCopy(rend, tex_doorN, NULL, &dest_door);
-                        
+
                         if (tempNeighbour->occupiedByMonster == 1 && tempNeighbour->type != Wall)
                         {
                             dest_lock.x = dest_door.x;
@@ -759,8 +730,7 @@ int main()
                         dest_door.y = SCREEN_H - dest_door.h - doorOffset;
                         SDL_RenderCopy(rend, tex_doorS, NULL, &dest_door);
 
-
-                        //pthread_mutex_lock(&currRoomLock2);
+                        // pthread_mutex_lock(&currRoomLock2);
 
                         if (tempNeighbour->occupiedByMonster == 1 && tempNeighbour->type != Wall)
                         {
@@ -769,7 +739,7 @@ int main()
                             SDL_RenderCopy(rend, tex_doorLock, NULL, &dest_lock);
                         }
 
-                        //pthread_mutex_unlock(&currRoomLock2);
+                        // pthread_mutex_unlock(&currRoomLock2);
 
                         break;
                     case 2:
@@ -786,7 +756,7 @@ int main()
 
                         break;
                     case 3:
-                        dest_door.x = 0+doorOffset;
+                        dest_door.x = 0 + doorOffset;
                         dest_door.y = SCREEN_H / 2 - dest_door.h / 2;
                         SDL_RenderCopy(rend, tex_doorW, NULL, &dest_door);
 
@@ -806,11 +776,12 @@ int main()
             int activateTrap = 0;
             if (current_room_player->type == Trap)
             {
-                dest_trap.x = CELL*3;
-                dest_trap.y = CELL*1.75;
-                dest_trap.h = SCREEN_H*0.6;
-                dest_trap.w = SCREEN_W*0.6;
-                if(current_room_player->trap == 1){
+                dest_trap.x = CELL * 3;
+                dest_trap.y = CELL * 1.75;
+                dest_trap.h = SCREEN_H * 0.6;
+                dest_trap.w = SCREEN_W * 0.6;
+                if (current_room_player->trap == 1)
+                {
                     activateTrap = 1;
                     SDL_RenderCopy(rend, tex_hiddenSpikes, NULL, &dest_trap);
                 }
@@ -840,11 +811,12 @@ int main()
             {
                 SDL_RenderCopy(rend, tex_open_chest, NULL, &dest_open_chest);
             }
-            
+
             if (player->hp < prevHealth)
             {
                 SDL_RenderCopy(rend, tex_heroDMG, NULL, &dest_hero);
-                if(activateTrap == 1){
+                if (activateTrap == 1)
+                {
                     SDL_RenderCopy(rend, tex_spikes, NULL, &dest_trap);
                 }
                 prevHealth = player->hp;
@@ -872,6 +844,7 @@ int main()
             SDL_RenderCopy(rend, tex_hero_attack_icon, NULL, &dest_hero_attack_icon);
             SDL_DestroyTexture(tex_hero_attack_text);
             SDL_FreeSurface(hero_attack_text);
+
             break;
         default:
             break;
@@ -917,7 +890,6 @@ int main()
                             int res = safelyMoveHero(3);
                         }
 
-
                         break;
                     case SDL_SCANCODE_S:
                     case SDL_SCANCODE_DOWN:
@@ -939,7 +911,7 @@ int main()
                         openChest(player);
                         break;
                     case SDL_SCANCODE_SPACE:
-                        //printf("space pressed \n");
+                        // printf("space pressed \n");
                         printf("Hero is attacking, atk: %d\n", player->atk);
 
                         struct room *current_room = getRoomPointerByID(current_room_id);
@@ -957,10 +929,13 @@ int main()
                         if (monsterID != -1)
                         {
                             struct monster *monster = &monsters[monsterID];
-                            if (monster->state == IDLE)
+
+                            int currState = monster->state;
+                            printf("State %d\n", currState);
+
+                            if (currState == IDLE)
                             {
                                 attackMonster(player, monster);
-                                sleep(0.1);
                             }
                             else
                             {
@@ -984,8 +959,6 @@ int main()
             }
         }
 
-        // printf("Rend\n");
-
         SDL_RenderPresent(rend);
 
         SDL_Delay(100);
@@ -996,7 +969,6 @@ int main()
     SDL_DestroyTexture(tex_wall);
     SDL_DestroyTexture(tex_room);
     SDL_DestroyTexture(tex_door);
-
     SDL_DestroyTexture(tex_doorN);
     SDL_DestroyTexture(tex_doorS);
     SDL_DestroyTexture(tex_doorE);
