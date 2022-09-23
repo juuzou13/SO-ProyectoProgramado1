@@ -128,7 +128,7 @@ int heroMove(struct hero *h, int location) {
     sleep(0.1);
 
     //printf("Monster %d is now in %d\n", m->id, m->location);
-    s
+    
     // changeMonsterState(m, IDLE);
     return true;
 }
