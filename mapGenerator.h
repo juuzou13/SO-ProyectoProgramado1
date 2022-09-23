@@ -824,10 +824,52 @@ int generateMap()
     int possibleDoorsSize = 0;
 
     struct room *startRoom = getRoomPointerByID(startRoomID);
+    int newStartRoomCandidate = startRoomID;
+    /*
+    // Comentar esto para que no cambie nunca el start y quede siempre en el centro
+    startRoom->type = getRandomRoomType();
+    if(startRoom->type == Trap) {
+        startRoom->trap = 1;
+    }else if(startRoom->type == Treasure) {
+        startRoom->treasure = 1;
+    }
+    startRoom->occupiedByMonster = 0;
+
+    int foundNewStart = 0;
+
+    while(!foundNewStart) {
+        newStartRoomCandidate = touredIds[rand() % touredIdsSize];
+
+        struct room *newStartRoom = getRoomPointerByID(newStartRoomCandidate);
+
+        foundNewStart = 1;
+
+        for(int i = 0; i < 4; i++) {
+            if(newStartRoom->doors[i].state == Open){
+                struct room *neigh = getRoomPointerByID(getNeighbour(newStartRoomCandidate, i));
+                if(neigh->type == Goal) {
+                    foundNewStart = 0;
+                }
+            }
+        }
+
+    }
+    //------------------------------------------------------------------------------
+    */
+
+    startRoom = getRoomPointerByID(newStartRoomCandidate);
+
+    //Set as normal room
+
     startRoom->type = Start;
     startRoom->trap = 0;
     startRoom->treasure = 0;
     startRoom->occupiedByMonster = 0;
+
+    startRoomID = startRoom->id;
+
+
+    
 
     for (int i = 0; i < touredIdsSize; i++)
     {
@@ -968,6 +1010,7 @@ int generateMap()
 
     //drawTemporalMap();
 
+    /*
     printf("Camino de habitaciones hasta el final (%d):\n", caminoSize - actualDeadEnds);
     printArray(camino, caminoSize - actualDeadEnds);
     printf("Callejones sin salida (%d):\n", actualDeadEnds);
@@ -977,6 +1020,8 @@ int generateMap()
 
     printf("Start Room: %d\n", startRoomID);
     printf("Goal Room: %d\n", goalRoomID);
+
+    */
 
     return startRoomID;
 }

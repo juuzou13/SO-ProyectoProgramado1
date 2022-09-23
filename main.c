@@ -172,13 +172,13 @@ void *monsterLife(void *m)
 
         if (action)
         {
-            printf("Monster is attacking\n");
+            //printf("Monster is attacking\n");
 
-            //pthread_mutex_lock(&currHeroLock);
+            // pthread_mutex_lock(&currHeroLock);
 
             attackHero(mon, player);
 
-            //pthread_mutex_unlock(&currHeroLock);
+            // pthread_mutex_unlock(&currHeroLock);
         }
         else
         {
@@ -186,7 +186,6 @@ void *monsterLife(void *m)
             if (loc != -1)
             {
                 monsterMove(mon, loc);
-                
             }
             else
             {
@@ -276,17 +275,21 @@ int safelyMoveHero(int roomToMove)
 int slashed;
 int prevHealth;
 
-int createCheckerboard(int scale, SDL_Rect dest_goal, SDL_Renderer * renderer){
+int drawMiniMap(int scale, SDL_Rect dest_minimapBlock, SDL_Renderer *renderer)
+{
     int scaleMap = scale;
     int startPoint = SCREEN_W - scaleMap * N;
-
-    int even = 0;
-    int evenStart = 0;
 
     int relX = 0;
     int relY = 0;
 
-    for(int y = 0; y < N*scaleMap; y=y+scaleMap){
+    int even = 0;
+    int evenStart = 0;
+
+    int offset = CELL/8;
+
+    for (int y = 0; y < N * scaleMap; y = y + scaleMap)
+    {
         if(evenStart>0){
             evenStart = 0;
             even = 0;
@@ -295,44 +298,126 @@ int createCheckerboard(int scale, SDL_Rect dest_goal, SDL_Renderer * renderer){
             even = 1;
         }
         relX = 0;
-        for(int x = startPoint; x < SCREEN_W; x=x+scaleMap){
-            dest_goal.w = scaleMap;
-            dest_goal.h = scaleMap;
+        for (int x = startPoint; x < SCREEN_W; x = x + scaleMap)
+        {
+            dest_minimapBlock.w = scaleMap ;
+            dest_minimapBlock.h = scaleMap;
 
-            dest_goal.x = x;
-            dest_goal.y = y;
+            dest_minimapBlock.x = x - offset;
+            dest_minimapBlock.y = y + offset;
+            // printf("x: %d, y: %d, even: %d\n", relX, relY, even);
+
+            /*
+            dest_minimapBlock.w = scaleMap - scaleMap*0.0001;
+            dest_minimapBlock.h = scaleMap - scaleMap*0.0001;
+
+            dest_minimapBlock.x = x + dest_minimapBlock.w/2 - offset;
+            dest_minimapBlock.y = y + dest_minimapBlock.h/2 + offset;
+            */
 
             if(even>0){
                 even = 0;
             }else{
                 even = 1;
             }
-            //printf("x: %d, y: %d, even: %d\n", relX, relY, even);
-            
-            if(game_map[relY][relX].type != Wall){
-                if(game_map[relY][relX].isHeroInRoom){
-                    SDL_SetRenderDrawColor(renderer, 255, 100, 200, 255);
-                }else if(game_map[relY][relX].type == Start){
-                    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
 
-                }else if(game_map[relY][relX].type == Goal){
-                    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-
-                }else{
-                    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            struct room *tempRoom = &game_map[relY][relX];
+            if (tempRoom->type != Wall)
+            {
+                if (tempRoom->isHeroInRoom)
+                {
+                    SDL_SetRenderDrawColor(renderer, 240, 220, 20, 255);
+                }else if(tempRoom->occupiedByMonster){
+                    SDL_SetRenderDrawColor(renderer, 70, 120, 25, 255);
                 }
-                    
-            }else{
-                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+                else if (tempRoom->type == Start)
+                {
+                    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+                }
+                else if (tempRoom->type == Goal)
+                {
+                    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+                }
+                else
+                {
+                    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 100);
+                }
             }
+            else
+            {
+                if(even){
+                    SDL_SetRenderDrawColor(renderer, 32, 32, 32, 100);
+                }else{
+                    SDL_SetRenderDrawColor(renderer, 12, 12, 12, 100);
+                }
+            }
+
             
-            SDL_RenderDrawRect(renderer, &dest_goal);
-            SDL_RenderFillRect(renderer, &dest_goal);
+
+            SDL_RenderDrawRect(renderer, &dest_minimapBlock);
+            SDL_RenderFillRect(renderer, &dest_minimapBlock);
+
+            int lineStartX = 0;
+            int lineStartY = 0;
+
+            int lineEndX = 0;
+            int lineEndY = 0;
+
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 100);
+            for(int i = 0; i < 4; i++){
+                if(tempRoom->doors[i].state == Closed){
+                    //printf("room id: %d, door: %d, state: %d", tempRoom->id, i, tempRoom->doors[i].state);
+                    int neigh = getNeighbour(tempRoom->id, i);
+                    if(neigh != -1){
+                        struct room *tempNeighbour = getRoomPointerByID(neigh);
+                        if(tempNeighbour->type != Wall){
+                            switch(i){
+                                case 0:
+                                    lineStartX = dest_minimapBlock.x;
+                                    lineStartY = dest_minimapBlock.y;
+
+                                    lineEndX = lineStartX + scaleMap;
+                                    lineEndY = lineStartY;
+
+                                    break;
+                                case 1:
+                                    lineStartX = dest_minimapBlock.x;
+                                    lineStartY = dest_minimapBlock.y + scaleMap;
+
+                                    lineEndX = lineStartX + scaleMap;
+                                    lineEndY = lineStartY;
+
+                                    break;
+                                case 2:
+                                    lineStartX = dest_minimapBlock.x+scaleMap;
+                                    lineStartY = dest_minimapBlock.y;
+
+                                    lineEndX = lineStartX;
+                                    lineEndY = lineStartY + scaleMap;
+
+                                    break;
+                                case 3:
+                                    lineStartX = dest_minimapBlock.x;
+                                    lineStartY = dest_minimapBlock.y;
+
+                                    lineEndX = lineStartX;
+                                    lineEndY = lineStartY + scaleMap;
+
+                                    break;
+
+                                
+                                
+                            }
+                            SDL_RenderDrawLine(renderer, lineStartX, lineStartY, lineEndX, lineEndY);
+                        }
+                    }
+                }
+            }
+
             relX++;
         }
         relY++;
     }
-
 }
 
 int main()
@@ -452,12 +537,14 @@ int main()
     {
         printf("Error inicializando SDL: %s\n", SDL_GetError());
     }
-    //SCREEN_W = 1920;
-    //SCREEN_H = 1080;
+    /*
+    SCREEN_W = 1920;
+    SCREEN_H = 1080;
+    */
 
     CELL = SCREEN_W / 16;
 
-    SDL_Window *win = SDL_CreateWindow("GAME", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_W, SCREEN_H, 0);
+    SDL_Window *win = SDL_CreateWindow("Proyecto 1 S.O", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_W, SCREEN_H, 0);
 
     Uint32 render_flags = SDL_RENDERER_ACCELERATED;
 
@@ -485,7 +572,7 @@ int main()
     SDL_Surface *heroDMG;
     SDL_Surface *wall;
     SDL_Surface *room;
-    SDL_Surface *door;
+    //SDL_Surface *door;
     SDL_Surface *doorN;
     SDL_Surface *doorS;
     SDL_Surface *doorE;
@@ -512,20 +599,14 @@ int main()
     heroDMG = IMG_Load("img/redKnight.png");
     wall = IMG_Load("img/wall.jpg");
     room = IMG_Load("img/background.jpg");
-
     deadSymbol = IMG_Load("img/deadMon.png");
-
-    door = IMG_Load("img/door.png");
-
+    //door = IMG_Load("img/door.png");
     doorN = IMG_Load("img/doorTop.png");
     doorS = IMG_Load("img/doorBottom.png");
     doorE = IMG_Load("img/doorRight.png");
     doorW = IMG_Load("img/doorLeft.png");
-
     doorLocked = IMG_Load("img/lock.png");
-
     slash = IMG_Load("img/slash.png");
-
     start = IMG_Load("img/start.png");
     goal = IMG_Load("img/goal.png");
     game_over = IMG_Load("img/gameOver.jpg");
@@ -536,30 +617,23 @@ int main()
     trap = IMG_Load("img/fire.png");
     hero_life_icon = IMG_Load("img/heart.png");
     hero_attack_icon = IMG_Load("img/attack.png");
-
     spikes = IMG_Load("img/spikes.png");
     hiddenSpikes = IMG_Load("img/hiddenSpikes.png");
 
     SDL_Texture *tex_hero = SDL_CreateTextureFromSurface(rend, hero);
     SDL_Texture *tex_heroDMG = SDL_CreateTextureFromSurface(rend, heroDMG);
-
     SDL_Texture *tex_wall = SDL_CreateTextureFromSurface(rend, wall);
     SDL_Texture *tex_room = SDL_CreateTextureFromSurface(rend, room);
-    SDL_Texture *tex_door = SDL_CreateTextureFromSurface(rend, door);
-
+    //SDL_Texture *tex_door = SDL_CreateTextureFromSurface(rend, door);
     SDL_Texture *tex_doorLock = SDL_CreateTextureFromSurface(rend, doorLocked);
-
     SDL_Texture *tex_doorN = SDL_CreateTextureFromSurface(rend, doorN);
     SDL_Texture *tex_doorS = SDL_CreateTextureFromSurface(rend, doorS);
     SDL_Texture *tex_doorE = SDL_CreateTextureFromSurface(rend, doorE);
     SDL_Texture *tex_doorW = SDL_CreateTextureFromSurface(rend, doorW);
-
     SDL_Texture *tex_slash = SDL_CreateTextureFromSurface(rend, slash);
     SDL_Texture *tex_deadSymbol = SDL_CreateTextureFromSurface(rend, deadSymbol);
-
     SDL_Texture *tex_spikes = SDL_CreateTextureFromSurface(rend, spikes);
     SDL_Texture *tex_hiddenSpikes = SDL_CreateTextureFromSurface(rend, hiddenSpikes);
-
     SDL_Texture *tex_start = SDL_CreateTextureFromSurface(rend, start);
     SDL_Texture *tex_goal = SDL_CreateTextureFromSurface(rend, goal);
     SDL_Texture *tex_game_over = SDL_CreateTextureFromSurface(rend, game_over);
@@ -575,7 +649,7 @@ int main()
     SDL_FreeSurface(heroDMG);
     SDL_FreeSurface(wall);
     SDL_FreeSurface(room);
-    SDL_FreeSurface(door);
+    //SDL_FreeSurface(door);
     SDL_FreeSurface(doorN);
     SDL_FreeSurface(doorS);
     SDL_FreeSurface(doorE);
@@ -608,7 +682,7 @@ int main()
     SDL_Rect dest_deadSymbol;
     SDL_Rect dest_lock;
     SDL_Rect dest_start;
-    SDL_Rect dest_goal;
+    SDL_Rect dest_minimapBlock;
     SDL_Rect dest_game_over;
     SDL_Rect dest_you_win;
     SDL_Rect dest_monster;
@@ -623,8 +697,6 @@ int main()
     SDL_Rect dest_hiddenSpikes;
     SDL_Rect dest_rect;
 
-    
-
     SDL_QueryTexture(tex_hero, NULL, NULL, &dest_hero.w, &dest_hero.h);
     SDL_QueryTexture(tex_heroDMG, NULL, NULL, &dest_hero.w, &dest_hero.h);
     SDL_QueryTexture(tex_wall, NULL, NULL, &dest_wall.w, &dest_wall.h);
@@ -633,7 +705,7 @@ int main()
     SDL_QueryTexture(tex_doorS, NULL, NULL, &dest_door.w, &dest_door.h);
     SDL_QueryTexture(tex_doorE, NULL, NULL, &dest_door.w, &dest_door.h);
     SDL_QueryTexture(tex_doorW, NULL, NULL, &dest_door.w, &dest_door.h);
-    SDL_QueryTexture(tex_door, NULL, NULL, &dest_door.w, &dest_door.h);
+    //SDL_QueryTexture(tex_door, NULL, NULL, &dest_door.w, &dest_door.h);
     SDL_QueryTexture(tex_doorLock, NULL, NULL, &dest_lock.w, &dest_lock.h);
     SDL_QueryTexture(tex_slash, NULL, NULL, &dest_slash.w, &dest_slash.h);
     SDL_QueryTexture(tex_deadSymbol, NULL, NULL, &dest_monster.w, &dest_monster.h);
@@ -642,7 +714,7 @@ int main()
     // SDL_QueryTexture(tex_hiddenSpikes, NULL, NULL, &dest_hiddenSpikes.w, &dest_hiddenSpikes.h);
 
     SDL_QueryTexture(tex_start, NULL, NULL, &dest_start.w, &dest_start.h);
-    SDL_QueryTexture(tex_goal, NULL, NULL, &dest_goal.w, &dest_goal.h);
+    SDL_QueryTexture(tex_goal, NULL, NULL, &dest_minimapBlock.w, &dest_minimapBlock.h);
     SDL_QueryTexture(tex_game_over, NULL, NULL, &dest_game_over.w, &dest_game_over.h);
     SDL_QueryTexture(tex_win, NULL, NULL, &dest_you_win.w, &dest_you_win.h);
     SDL_QueryTexture(tex_monster, NULL, NULL, &dest_monster.w, &dest_monster.h);
@@ -664,13 +736,11 @@ int main()
     dest_door.w = CELL;
     dest_door.h = CELL;
 
-    dest_lock.w = dest_door.w;
+    dest_lock.w = dest_door.w - CELL/6;
     dest_lock.h = dest_door.h;
 
     dest_start.w = CELL;
     dest_start.h = CELL;
-
-    
 
     dest_you_win.w /= 5;
     dest_you_win.h /= 5;
@@ -681,8 +751,8 @@ int main()
     dest_slash.w = CELL;
     dest_slash.h = CELL;
 
-    dest_open_chest.w = CELL * 1.5;
-    dest_open_chest.h = CELL * 1.5;
+    dest_open_chest.w = CELL + 1.5;
+    dest_open_chest.h = CELL + 1.5;
     dest_closed_chest.w = dest_open_chest.w;
     dest_closed_chest.h = dest_open_chest.h;
 
@@ -727,19 +797,18 @@ int main()
     dest_game_over.x = SCREEN_W / 2 - dest_game_over.w / 2;
     dest_game_over.y = SCREEN_H / 2 - dest_game_over.h / 2;
 
-    
-
     dest_you_win.x = SCREEN_W / 2 - dest_you_win.w / 2;
     dest_you_win.y = SCREEN_H / 2 - dest_you_win.h / 2;
 
     SDL_Point mousePosition;
 
+    int gameCycles = 0;
+
     while (!closeWindow)
     {
-        system("clear");
-        drawTemporalMap();
-        
-
+        //system("clear");
+        //drawTemporalMap();
+        gameCycles++;
         SDL_Event event;
 
         current_room_player = getRoomPointerByID(current_room_id);
@@ -754,15 +823,14 @@ int main()
 
         SDL_RenderClear(rend);
 
-        
         if (current_game_state == GAME_STATE_RUN)
         {
-            SDL_RenderCopy(rend, tex_room, NULL, &dest_room);
+            //if(gameCycles % 20 == 0){
+                SDL_RenderCopy(rend, tex_room, NULL, &dest_room);
+                drawMiniMap(SCREEN_W * 0.0065, dest_minimapBlock, rend);
+            //}
         }
 
-        
-
-            
         switch (current_game_state)
         {
         case GAME_STATE_OVER:
@@ -774,8 +842,7 @@ int main()
             closeWindow = true;
             break;
         case GAME_STATE_RUN:
-            createCheckerboard(SCREEN_W*0.006, dest_goal, rend);
-
+            
 
             for (int k = 0; k < 4; k++)
             {
@@ -861,7 +928,9 @@ int main()
                 {
                     activateTrap = 1;
                     SDL_RenderCopy(rend, tex_spikes, NULL, &dest_trap);
-                }else{
+                }
+                else
+                {
                     activateTrap = 0;
                     SDL_RenderCopy(rend, tex_hiddenSpikes, NULL, &dest_trap);
                 }
@@ -932,9 +1001,6 @@ int main()
 
         while (SDL_PollEvent(&event))
         {
-            
-            
-
 
             SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
             switch (event.type)
@@ -1027,10 +1093,7 @@ int main()
                                 printf("Monster is not idle\n");
                             }
                         }
-                        else
-                        {
-                            printf("There is no monster in this room\n");
-                        }
+                        
                         pthread_mutex_unlock(&attackingLock);
                         // SDL_DestroyTexture(tex_slash);
 
@@ -1045,15 +1108,18 @@ int main()
         }
 
         SDL_RenderPresent(rend);
-
-        SDL_Delay(100);
+        
+        if(gameCycles > 60){
+            gameCycles = 0;
+        }
+        SDL_Delay(75);
     }
 
     SDL_DestroyTexture(tex_hero);
     SDL_DestroyTexture(tex_heroDMG);
     SDL_DestroyTexture(tex_wall);
     SDL_DestroyTexture(tex_room);
-    SDL_DestroyTexture(tex_door);
+    //SDL_DestroyTexture(tex_door);
     SDL_DestroyTexture(tex_doorN);
     SDL_DestroyTexture(tex_doorS);
     SDL_DestroyTexture(tex_doorE);
@@ -1082,14 +1148,11 @@ int main()
         pthread_join(monsterThreads[i], NULL);
     }
 
-    printf("All monsters are dead\n");
-
-    printf("HeroHP is dead\n");
     pthread_cancel(heroThread);
 
     pthread_join(heroThread, NULL);
 
-    printf("HeroThread is dead\n");
+    printf("Thanks For Playing\n");
 
     pthread_mutex_destroy(&lock);
 
