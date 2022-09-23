@@ -336,7 +336,7 @@ int drawMiniMap(int scale, SDL_Rect dest_minimapBlock, SDL_Renderer *renderer)
                 }
                 else if (tempRoom->type == Goal)
                 {
-                    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+                    SDL_SetRenderDrawColor(renderer, 175, 45, 45, 255);
                 }
                 else
                 {
@@ -752,11 +752,11 @@ int main()
     dest_start.w = CELL;
     dest_start.h = CELL;
 
-    dest_you_win.w /= 5;
-    dest_you_win.h /= 5;
+    dest_you_win.w = CELL*3;
+    dest_you_win.h = CELL*3;
 
-    dest_monster.w = CELL * 1.3;
-    dest_monster.h = CELL * 1.3;
+    dest_monster.w = dest_hero.w;
+    dest_monster.h = dest_hero.h;
 
     dest_slash.w = CELL;
     dest_slash.h = CELL;
@@ -949,15 +949,18 @@ int main()
             {
 
                 struct monster *currMon = &monsters[current_room_player->monsterInRoomID];
+
+                dest_monster.x = dest_hero.x + CELL + CELL/2;
+                dest_monster.y = dest_hero.y;
+
+
                 if (currMon->hp <= 0)
                 {
+                    dest_monster.x = dest_hero.x + CELL + CELL/2 + CELL/2;
                     SDL_RenderCopy(rend, tex_deadSymbol, NULL, &dest_monster);
                 }
                 else
                 {
-                    dest_monster.x = dest_hero.x + CELL * 2;
-                    dest_monster.y = dest_hero.y;
-
                     SDL_RenderCopy(rend, tex_monster, NULL, &dest_monster);
                 }
             }
@@ -1073,8 +1076,7 @@ int main()
                         break;
                     case SDL_SCANCODE_SPACE:
                         // printf("space pressed \n");
-                        printf("Hero is attacking, atk: %d\n", player->atk);
-
+                        ;
                         struct room *current_room = getRoomPointerByID(current_room_id);
                         attackingLock = current_room->room_lock;
 
@@ -1092,7 +1094,7 @@ int main()
                             struct monster *monster = &monsters[monsterID];
 
                             int currState = monster->state;
-                            printf("State %d\n", currState);
+                            //printf("State %d\n", currState);
 
                             if (currState == IDLE)
                             {
