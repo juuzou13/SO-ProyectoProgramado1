@@ -74,14 +74,16 @@ int isMonsterInHerosLocation(struct monster *m, struct hero *h) {
 int attackHero(struct monster *m, struct hero *h) {
     changeMonsterState(m, ATTACK);
     m->state = ATTACK;
-    //printf("Monster %d is attacking hero\n", m->id);
+    printf("Monster %d is attacking hero\n", m->id);
     h->hp -= m->atk;
-    //printf("Hero has %d hp left\n", h->hp);
+    printf("Hero has %d hp left\n", h->hp);
     changeMonsterState(m, IDLE);
     return true;
 }
 
 // Hero Functions
+
+
 
 void* updateTrap(void* h) {
     struct hero *hero = (struct hero*) h;
@@ -89,12 +91,12 @@ void* updateTrap(void* h) {
     //printf("roomID: %d\n", roomID);
     struct room *room = getRoomPointerByID(roomID);
     pthread_mutex_t roomLock = room->room_lock;
-    //printf("\nTrap in room %d is now active\n", roomID);
+    printf("\nTrap in room %d is now active\n", roomID);
 
     float waitTime = randomInt(12, 17);
     waitTime /= 10;
 
-    //printf("Trap will activate in %f seconds\n", waitTime);
+    printf("Trap will activate in %f seconds\n", waitTime);
 
     sleep(waitTime);
     room->activated_trap = 1;
@@ -102,12 +104,12 @@ void* updateTrap(void* h) {
     pthread_mutex_lock(&roomLock);
     if (room->isHeroInRoom){
         hero->hp -= 1;
-        //printf("Hero has been hit by trap in room %d\n", roomID);
-        //printf("Hero has %d hp left\n", hero->hp);
+        printf("Hero has been hit by trap in room %d\n", roomID);
+        printf("Hero has %d hp left\n", hero->hp);
     }
     pthread_mutex_unlock(&roomLock);
 
-    //printf("Trap in room %d has been triggered\n", roomID);
+    printf("Trap in room %d has been triggered\n", roomID);
     room->trap = 0;
     pthread_exit(0);
 }
@@ -144,7 +146,7 @@ int attackMonster(struct hero *h, struct monster *m) {
     //printf("Hero is attacking monster %d with atk: %d\n", m->id, h->atk);
     if(m->state == IDLE){
         m->hp -= h->atk;
-        //printf("\nMonster has %d hp left\n", m->hp);
+        printf("\nMonster has %d hp left\n", m->hp);
     }else{
         printf("Monster is not idle, cannot attack\n");
     }

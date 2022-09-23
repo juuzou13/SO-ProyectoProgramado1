@@ -25,6 +25,9 @@
 #define MEDIUM 20
 #define HARD 30
 
+int getRandomRoomType();
+int openDoor(int roomID, int doorDirection);
+
 enum CardinalPoint
 {
     North,
@@ -90,6 +93,8 @@ int getNeighbour(int currID, int direction)
         return currID % N != 0 ? currID + 1 : -1;
     case West:
         return currID % N != 1 ? currID - 1 : -1;
+    default:
+        return -1;
     }
 }
 
@@ -118,7 +123,10 @@ char *getCardinalName(int cardinal)
     case 3:
         return "Oeste";
         break;
+    default:
+        break;
     }
+    return "";
 }
 
 void getRoomDetails(struct room *room)
@@ -262,7 +270,6 @@ int isHeroInRoom(int roomID){
 
 int getFreeRooms()
 {
-    int k = 0;
 
     int found = 0;
 
@@ -273,10 +280,10 @@ int getFreeRooms()
 
         if (game_map[i][j].type != Wall && game_map[i][j].occupiedByMonster == 0 && game_map[i][j].type != Start && game_map[i][j].type != Goal)
         {
-            found = 1;
             return game_map[i][j].id;
         }
     }
+    return -1;
 }
 
 struct room *getRoomPointerByID(int id)
@@ -284,6 +291,7 @@ struct room *getRoomPointerByID(int id)
     if (id > N * N || id < 1)
     {
         printf("No existe habitacion con dicho id, getRoomPointerByID.\n");
+        exit(0);
     }
     else
     {
@@ -349,8 +357,6 @@ void drawTemporalMap()
     printf("\n");
     char openDoors[5] = {' ', ' ', ' ', ' ', '\0'};
     struct room *room;
-
-    char *roomColor;
 
     for (int i = 0; i < N; i++)
     {
@@ -432,12 +438,10 @@ void drawTemporalMap()
             }
             else if (room->type == Start)
             {
-                roomColor = GREEN;
                 printf(GREEN "%d" DEFAULT ") %s%s", room->id, openDoors, spaces2);
             }
             else if (room->type == Goal)
             {
-                roomColor = RED;
                 printf(RED "%d" DEFAULT ") %s%s", room->id, openDoors, spaces2);
             }
             else if (room->occupiedByMonster == 1)
@@ -479,7 +483,6 @@ int getMaxNeighbours(int id)
 void connectRooms(int *roomsArray, int *directionsArray, int size)
 {
     int currentRoomId = 0;
-    int nextRoom = 0;
     struct room *currentRoomPtr;
 
     int oppositeDoor = -1;
@@ -512,7 +515,7 @@ void connectRooms(int *roomsArray, int *directionsArray, int size)
     currentRoomPtr->openDoorsLeft = currentRoomPtr->openDoorsLeft - 1;
 }
 
-void getUnvisitedeighbors(int *roomsList, int size, int *unvisitedO, int *unvisitedSizeO, int *unvisitedDirectionsO, int *unvisitedDirectionsSizeO, int goalRoomID)
+void getUnvisitedNeighbors(int *roomsList, int size, int *unvisitedO, int *unvisitedSizeO, int *unvisitedDirectionsO, int *unvisitedDirectionsSizeO, int goalRoomID)
 {
     int neighbor;
     int unvisited[N * N];
@@ -608,20 +611,14 @@ int getRandomRoomType()
 
 void createMap(int startRoomID, int total)
 {
-    int idList[total];
-    int id;
-
     for (int i = 0; i < N; i++)
     {
-        game_map[i] = (int *)malloc(N * sizeof(int));
+        game_map[i] = (struct room *)malloc(N * sizeof(int));
         for (int j = 0; j < N; j++)
         {
             struct room *room = (struct room *)malloc(sizeof(struct room));
 
-            id = (j + 1) + N * i;
-
             room->id = (j + 1) + N * i;
-            idList[id - 1] = (j + 1) + N * i;
 
             room->activated_trap = 0;
 
@@ -666,7 +663,6 @@ pthread_mutex_t *getRoomLock(int roomID)
 
 int canThisDoorBeOpened(int currentRoomID, int doorDirection)
 {
-    int oppositeTable[4] = {1, 0, 3, 2};
 
     int neighbor = getNeighbour(currentRoomID, doorDirection);
     struct room *currentRoom = getRoomPointerByID(currentRoomID);
@@ -696,6 +692,7 @@ int setRoomChestState(int id, int state)
 {
     struct room *room = getRoomPointerByID(id);
     room->treasure = state;
+    return 1;
 }
 
 int getRoomChestState(int id)
@@ -715,10 +712,10 @@ int generateMap()
 
     int total = N * N;
 
-    game_map = (int **)malloc(N * sizeof(struct room *));
+    game_map = (struct room **)malloc(N * sizeof(struct room *));
 
     int startRoomID = N % 2 == 0 ? total / 2 - N / 2 : total / 2 + 1;
-    int goalRoomID;
+    int goalRoomID = 0;
 
     createMap(startRoomID, total);
 
@@ -797,8 +794,6 @@ int generateMap()
             possibleConnectionsSize = 0;
         }
 
-        struct room *room = getRoomPointerByID(currentRoomId);
-
         roomCount--;
     }
 
@@ -824,52 +819,10 @@ int generateMap()
     int possibleDoorsSize = 0;
 
     struct room *startRoom = getRoomPointerByID(startRoomID);
-    int newStartRoomCandidate = startRoomID;
-    /*
-    // Comentar esto para que no cambie nunca el start y quede siempre en el centro
-    startRoom->type = getRandomRoomType();
-    if(startRoom->type == Trap) {
-        startRoom->trap = 1;
-    }else if(startRoom->type == Treasure) {
-        startRoom->treasure = 1;
-    }
-    startRoom->occupiedByMonster = 0;
-
-    int foundNewStart = 0;
-
-    while(!foundNewStart) {
-        newStartRoomCandidate = touredIds[rand() % touredIdsSize];
-
-        struct room *newStartRoom = getRoomPointerByID(newStartRoomCandidate);
-
-        foundNewStart = 1;
-
-        for(int i = 0; i < 4; i++) {
-            if(newStartRoom->doors[i].state == Open){
-                struct room *neigh = getRoomPointerByID(getNeighbour(newStartRoomCandidate, i));
-                if(neigh->type == Goal) {
-                    foundNewStart = 0;
-                }
-            }
-        }
-
-    }
-    //------------------------------------------------------------------------------
-    */
-
-    startRoom = getRoomPointerByID(newStartRoomCandidate);
-
-    //Set as normal room
-
     startRoom->type = Start;
     startRoom->trap = 0;
     startRoom->treasure = 0;
     startRoom->occupiedByMonster = 0;
-
-    startRoomID = startRoom->id;
-
-
-    
 
     for (int i = 0; i < touredIdsSize; i++)
     {
@@ -928,16 +881,15 @@ int generateMap()
 
     printf("Creando callejones sin salida...\n\n");
 
-    int univisted[total];
+    int unvisited[total];
     int unvisitedSize = 0;
 
     int unvisitedDirections[total];
     int unvisitedDirectionsSize = 0;
 
     struct room *currentRoom;
-    struct room *roomToConnect;
 
-    getUnvisitedeighbors(touredIds, touredIdsSize, &univisted, &unvisitedSize, &unvisitedDirections, &unvisitedDirectionsSize, goalRoomID);
+    getUnvisitedNeighbors(touredIds, touredIdsSize, unvisited, &unvisitedSize, unvisitedDirections, &unvisitedDirectionsSize, goalRoomID);
 
     int oppositeTable[4] = {1, 0, 3, 2};
 
@@ -946,14 +898,10 @@ int generateMap()
     int directionToConnect;
     int oppositeDirection;
 
-    int tries = unvisitedDirectionsSize;
-
     int visitedIndexes[unvisitedSize];
     int visitedIndexesSize = 0;
 
     int actualDeadEnds = 0;
-
-    int opporunities = 500;
 
     //drawTemporalMap();
 
@@ -966,14 +914,13 @@ int generateMap()
             random = rand() % unvisitedSize;
         }
 
-        connectedRoomID = univisted[random];
+        connectedRoomID = unvisited[random];
         directionToConnect = unvisitedDirections[random];
 
         roomToConnectId = getNeighbour(connectedRoomID, directionToConnect);
         oppositeDirection = oppositeTable[directionToConnect];
 
         currentRoom = getRoomPointerByID(connectedRoomID);
-        roomToConnect = getRoomPointerByID(roomToConnectId);
 
         int res = openDoor(roomToConnectId, oppositeDirection);
         if (res)
@@ -1010,7 +957,6 @@ int generateMap()
 
     //drawTemporalMap();
 
-    /*
     printf("Camino de habitaciones hasta el final (%d):\n", caminoSize - actualDeadEnds);
     printArray(camino, caminoSize - actualDeadEnds);
     printf("Callejones sin salida (%d):\n", actualDeadEnds);
@@ -1020,8 +966,6 @@ int generateMap()
 
     printf("Start Room: %d\n", startRoomID);
     printf("Goal Room: %d\n", goalRoomID);
-
-    */
 
     return startRoomID;
 }
