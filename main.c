@@ -154,7 +154,7 @@ void *monsterLife(void *m)
     int action;
     pthread_mutex_t currHeroLock;
 
-    printf("Monster %d is alive\n", mon->id);
+    //printf("Monster %d is alive\n", mon->id);
 
     while (mon->hp > 0 && player->hp > 0)
     {
@@ -937,12 +937,12 @@ int main()
                 if (current_room_player->trap == 1)
                 {
                     activateTrap = 1;
-                    SDL_RenderCopy(rend, tex_spikes, NULL, &dest_trap);
+                    SDL_RenderCopy(rend, tex_hiddenSpikes, NULL, &dest_trap);
                 }
                 else
                 {
                     activateTrap = 0;
-                    SDL_RenderCopy(rend, tex_hiddenSpikes, NULL, &dest_trap);
+                    SDL_RenderCopy(rend, tex_spikes, NULL, &dest_trap);
                 }
             }
             if (current_room_player->occupiedByMonster)
