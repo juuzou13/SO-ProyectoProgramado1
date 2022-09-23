@@ -194,7 +194,7 @@ void *monsterLife(void *m)
             }
         }
 
-        if (current_game_state == GAME_STATE_OVER || current_game_state == GAME_STATE_VICTORY || closeWindow == 1)
+        if (closeWindow == 1)
         {
             pthread_exit(0);
         }
@@ -221,6 +221,10 @@ void *heroLife(void *h)
 
     while (hero->hp > 0)
     {
+        if (closeWindow == 1)
+        {
+            pthread_exit(0);
+        }
         if (getRoomPointerByID(hero->location)->type == Goal)
         {
             winner = 1;
