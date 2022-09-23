@@ -420,6 +420,8 @@ int drawMiniMap(int scale, SDL_Rect dest_minimapBlock, SDL_Renderer *renderer)
     }
 }
 
+double miniMapScale = 0;
+
 int main()
 {
 
@@ -480,18 +482,30 @@ int main()
     {
     case 1:
         N = EASY;
+        miniMapScale = 0.015;
         break;
     case 2:
         N = MEDIUM;
+        miniMapScale = 0.01;
         break;
     case 3:
         N = HARD;
+        miniMapScale = 0.0065;
         break;
     }
 
     unsigned short *screen_size = get_screen_size();
-    SCREEN_W = screen_size[0] * 0.75;
-    SCREEN_H = screen_size[1] * 0.75;
+
+    /*
+    SCREEN_W = 1920;
+    SCREEN_H = 1080;
+    */
+
+    SCREEN_W = screen_size[0];
+    SCREEN_H = screen_size[1];
+
+    SCREEN_H *= 0.8;
+    SCREEN_W *= 0.8;
 
     int startLocation = generateMap(N);
 
@@ -537,10 +551,6 @@ int main()
     {
         printf("Error inicializando SDL: %s\n", SDL_GetError());
     }
-    /*
-    SCREEN_W = 1920;
-    SCREEN_H = 1080;
-    */
 
     CELL = SCREEN_W / 16;
 
@@ -827,7 +837,7 @@ int main()
         {
             //if(gameCycles % 20 == 0){
                 SDL_RenderCopy(rend, tex_room, NULL, &dest_room);
-                drawMiniMap(SCREEN_W * 0.0065, dest_minimapBlock, rend);
+                drawMiniMap(SCREEN_W * miniMapScale, dest_minimapBlock, rend);
             //}
         }
 
