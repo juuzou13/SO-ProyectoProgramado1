@@ -216,14 +216,14 @@ void *heroLife(void *h)
         if (getRoomPointerByID(hero->location)->type == Goal)
         {
             winner = 1;
-            printf("You reached the exit, you won!\n");
+            printf("\nYou reached the exit, you won!\n");
             sleep(3);
             hero->hp = 0;
             pthread_exit(0);
         }
     }
 
-    printf("Hero is dead, you lose!\n");
+    printf("\nHero is dead, you lose!\n");
     pthread_exit(0);
 }
 
@@ -240,7 +240,6 @@ int safelyMoveHero(int roomToMove)
         setHeroInRoom(current_room_id, 0);
         setHeroInRoom(neighbourID, 1);
         heroMove(player, neighbourID);
-        sleep(0.1);
 
         current_room_id = neighbourID;
     }
@@ -1109,7 +1108,7 @@ int main()
 
     pthread_join(heroThread, NULL);
 
-    printf("Thanks For Playing\n");
+    printf("\nThanks For Playing\n");
 
     pthread_mutex_destroy(&lock);
 
