@@ -127,21 +127,19 @@ int openChest(struct hero *h)
         int r = rand() % 2;
         if (r == 0)
         {
-            // printf("before Hero opened a chest and got +1 attack, actual attack: %d\n", h->atk);
+
             h->atk = h->atk + 1;
-            // printf("after Hero opened a chest and got +1 attack, actual attack: %d\n", h->atk);
         }
         else
         {
             h->hp = h->hp + 1;
-            // printf("Hero has %d hp\n", h->hp);
         }
         setRoomChestState(h->location, 0);
         return 1;
     }
     else
     {
-        // printf("There is no chest in this room\n");
+
         return 0;
     }
 }
@@ -153,8 +151,6 @@ void *monsterLife(void *m)
     int freeNeighbours[4];
     int action;
     pthread_mutex_t currHeroLock;
-
-    //printf("Monster %d is alive\n", mon->id);
 
     while (mon->hp > 0 && player->hp > 0)
     {
@@ -172,13 +168,7 @@ void *monsterLife(void *m)
 
         if (action)
         {
-            //printf("Monster is attacking\n");
-
-            // pthread_mutex_lock(&currHeroLock);
-
             attackHero(mon, player);
-
-            // pthread_mutex_unlock(&currHeroLock);
         }
         else
         {
@@ -199,7 +189,7 @@ void *monsterLife(void *m)
         }
     }
 
-    printf("Monster %d is dead\n", mon->id);
+    printf("\nMonster %d is dead!\n", mon->id);
 
     pthread_mutex_t currLock = getRoomPointerByID(mon->location)->room_lock;
 
@@ -208,7 +198,6 @@ void *monsterLife(void *m)
     setMonsterID(mon->location, -1);
     pthread_mutex_unlock(&currLock);
 
-    sleep(3);
     pthread_exit(0);
 }
 
@@ -227,16 +216,14 @@ void *heroLife(void *h)
         if (getRoomPointerByID(hero->location)->type == Goal)
         {
             winner = 1;
-            printf("Hero has won\n");
+            printf("You reached the exit, you won!\n");
             sleep(3);
             hero->hp = 0;
             pthread_exit(0);
         }
-        // system("clear");
-        // drawTemporalMap();
     }
 
-    printf("Hero is dead\n");
+    printf("Hero is dead, you lose!\n");
     pthread_exit(0);
 }
 
@@ -248,7 +235,6 @@ int safelyMoveHero(int roomToMove)
     pthread_mutex_t currRoomLock = tempNeighbour->room_lock;
 
     pthread_mutex_lock(&currRoomLock);
-
     if (tempNeighbour->occupiedByMonster == 0 && tempNeighbour->type != Wall)
     {
         setHeroInRoom(current_room_id, 0);
@@ -257,15 +243,6 @@ int safelyMoveHero(int roomToMove)
         sleep(0.1);
 
         current_room_id = neighbourID;
-
-        // printf("Hero moved to room %d\n", player->location);
-    }
-    else
-    {
-        if (tempNeighbour->occupiedByMonster == 1)
-        {
-            return -1;
-        }
     }
     pthread_mutex_unlock(&currRoomLock);
 
@@ -286,38 +263,35 @@ int drawMiniMap(int scale, SDL_Rect dest_minimapBlock, SDL_Renderer *renderer)
     int even = 0;
     int evenStart = 0;
 
-    int offset = CELL/8;
+    int offset = CELL / 8;
 
     for (int y = 0; y < N * scaleMap; y = y + scaleMap)
     {
-        if(evenStart>0){
+        if (evenStart > 0)
+        {
             evenStart = 0;
             even = 0;
-        }else{
+        }
+        else
+        {
             evenStart = 1;
             even = 1;
         }
         relX = 0;
         for (int x = startPoint; x < SCREEN_W; x = x + scaleMap)
         {
-            dest_minimapBlock.w = scaleMap ;
+            dest_minimapBlock.w = scaleMap;
             dest_minimapBlock.h = scaleMap;
 
             dest_minimapBlock.x = x - offset;
             dest_minimapBlock.y = y + offset;
-            // printf("x: %d, y: %d, even: %d\n", relX, relY, even);
 
-            /*
-            dest_minimapBlock.w = scaleMap - scaleMap*0.0001;
-            dest_minimapBlock.h = scaleMap - scaleMap*0.0001;
-
-            dest_minimapBlock.x = x + dest_minimapBlock.w/2 - offset;
-            dest_minimapBlock.y = y + dest_minimapBlock.h/2 + offset;
-            */
-
-            if(even>0){
+            if (even > 0)
+            {
                 even = 0;
-            }else{
+            }
+            else
+            {
                 even = 1;
             }
 
@@ -327,7 +301,9 @@ int drawMiniMap(int scale, SDL_Rect dest_minimapBlock, SDL_Renderer *renderer)
                 if (tempRoom->isHeroInRoom)
                 {
                     SDL_SetRenderDrawColor(renderer, 240, 220, 20, 255);
-                }else if(tempRoom->occupiedByMonster){
+                }
+                else if (tempRoom->occupiedByMonster)
+                {
                     SDL_SetRenderDrawColor(renderer, 70, 120, 25, 255);
                 }
                 else if (tempRoom->type == Start)
@@ -345,14 +321,15 @@ int drawMiniMap(int scale, SDL_Rect dest_minimapBlock, SDL_Renderer *renderer)
             }
             else
             {
-                if(even){
+                if (even)
+                {
                     SDL_SetRenderDrawColor(renderer, 32, 32, 32, 100);
-                }else{
+                }
+                else
+                {
                     SDL_SetRenderDrawColor(renderer, 12, 12, 12, 100);
                 }
             }
-
-            
 
             SDL_RenderDrawRect(renderer, &dest_minimapBlock);
             SDL_RenderFillRect(renderer, &dest_minimapBlock);
@@ -364,49 +341,51 @@ int drawMiniMap(int scale, SDL_Rect dest_minimapBlock, SDL_Renderer *renderer)
             int lineEndY = 0;
 
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 100);
-            for(int i = 0; i < 4; i++){
-                if(tempRoom->doors[i].state == Closed){
-                    //printf("room id: %d, door: %d, state: %d", tempRoom->id, i, tempRoom->doors[i].state);
+            for (int i = 0; i < 4; i++)
+            {
+                if (tempRoom->doors[i].state == Closed)
+                {
+
                     int neigh = getNeighbour(tempRoom->id, i);
-                    if(neigh != -1){
+                    if (neigh != -1)
+                    {
                         struct room *tempNeighbour = getRoomPointerByID(neigh);
-                        if(tempNeighbour->type != Wall){
-                            switch(i){
-                                case 0:
-                                    lineStartX = dest_minimapBlock.x;
-                                    lineStartY = dest_minimapBlock.y;
+                        if (tempNeighbour->type != Wall)
+                        {
+                            switch (i)
+                            {
+                            case 0:
+                                lineStartX = dest_minimapBlock.x;
+                                lineStartY = dest_minimapBlock.y;
 
-                                    lineEndX = lineStartX + scaleMap;
-                                    lineEndY = lineStartY;
+                                lineEndX = lineStartX + scaleMap;
+                                lineEndY = lineStartY;
 
-                                    break;
-                                case 1:
-                                    lineStartX = dest_minimapBlock.x;
-                                    lineStartY = dest_minimapBlock.y + scaleMap;
+                                break;
+                            case 1:
+                                lineStartX = dest_minimapBlock.x;
+                                lineStartY = dest_minimapBlock.y + scaleMap;
 
-                                    lineEndX = lineStartX + scaleMap;
-                                    lineEndY = lineStartY;
+                                lineEndX = lineStartX + scaleMap;
+                                lineEndY = lineStartY;
 
-                                    break;
-                                case 2:
-                                    lineStartX = dest_minimapBlock.x+scaleMap;
-                                    lineStartY = dest_minimapBlock.y;
+                                break;
+                            case 2:
+                                lineStartX = dest_minimapBlock.x + scaleMap;
+                                lineStartY = dest_minimapBlock.y;
 
-                                    lineEndX = lineStartX;
-                                    lineEndY = lineStartY + scaleMap;
+                                lineEndX = lineStartX;
+                                lineEndY = lineStartY + scaleMap;
 
-                                    break;
-                                case 3:
-                                    lineStartX = dest_minimapBlock.x;
-                                    lineStartY = dest_minimapBlock.y;
+                                break;
+                            case 3:
+                                lineStartX = dest_minimapBlock.x;
+                                lineStartY = dest_minimapBlock.y;
 
-                                    lineEndX = lineStartX;
-                                    lineEndY = lineStartY + scaleMap;
+                                lineEndX = lineStartX;
+                                lineEndY = lineStartY + scaleMap;
 
-                                    break;
-
-                                
-                                
+                                break;
                             }
                             SDL_RenderDrawLine(renderer, lineStartX, lineStartY, lineEndX, lineEndY);
                         }
@@ -496,11 +475,6 @@ int main()
 
     unsigned short *screen_size = get_screen_size();
 
-    /*
-    SCREEN_W = 1920;
-    SCREEN_H = 1080;
-    */
-
     SCREEN_W = screen_size[0];
     SCREEN_H = screen_size[1];
 
@@ -512,7 +486,6 @@ int main()
     while (startLocation == -1)
     {
         startLocation = generateMap(N);
-        // printf("Reintentando generar mapa...\n");
     }
 
     pthread_mutex_init(&lock, NULL);
@@ -582,7 +555,7 @@ int main()
     SDL_Surface *heroDMG;
     SDL_Surface *wall;
     SDL_Surface *room;
-    //SDL_Surface *door;
+
     SDL_Surface *doorN;
     SDL_Surface *doorS;
     SDL_Surface *doorE;
@@ -610,7 +583,7 @@ int main()
     wall = IMG_Load("img/wall.jpg");
     room = IMG_Load("img/background.jpg");
     deadSymbol = IMG_Load("img/deadMon.png");
-    //door = IMG_Load("img/door.png");
+
     doorN = IMG_Load("img/doorTop.png");
     doorS = IMG_Load("img/doorBottom.png");
     doorE = IMG_Load("img/doorRight.png");
@@ -634,7 +607,7 @@ int main()
     SDL_Texture *tex_heroDMG = SDL_CreateTextureFromSurface(rend, heroDMG);
     SDL_Texture *tex_wall = SDL_CreateTextureFromSurface(rend, wall);
     SDL_Texture *tex_room = SDL_CreateTextureFromSurface(rend, room);
-    //SDL_Texture *tex_door = SDL_CreateTextureFromSurface(rend, door);
+
     SDL_Texture *tex_doorLock = SDL_CreateTextureFromSurface(rend, doorLocked);
     SDL_Texture *tex_doorN = SDL_CreateTextureFromSurface(rend, doorN);
     SDL_Texture *tex_doorS = SDL_CreateTextureFromSurface(rend, doorS);
@@ -659,7 +632,7 @@ int main()
     SDL_FreeSurface(heroDMG);
     SDL_FreeSurface(wall);
     SDL_FreeSurface(room);
-    //SDL_FreeSurface(door);
+
     SDL_FreeSurface(doorN);
     SDL_FreeSurface(doorS);
     SDL_FreeSurface(doorE);
@@ -715,13 +688,10 @@ int main()
     SDL_QueryTexture(tex_doorS, NULL, NULL, &dest_door.w, &dest_door.h);
     SDL_QueryTexture(tex_doorE, NULL, NULL, &dest_door.w, &dest_door.h);
     SDL_QueryTexture(tex_doorW, NULL, NULL, &dest_door.w, &dest_door.h);
-    //SDL_QueryTexture(tex_door, NULL, NULL, &dest_door.w, &dest_door.h);
+
     SDL_QueryTexture(tex_doorLock, NULL, NULL, &dest_lock.w, &dest_lock.h);
     SDL_QueryTexture(tex_slash, NULL, NULL, &dest_slash.w, &dest_slash.h);
     SDL_QueryTexture(tex_deadSymbol, NULL, NULL, &dest_monster.w, &dest_monster.h);
-
-    // SDL_QueryTexture(tex_spikes, NULL, NULL, &dest_spikes.w, &dest_spikes.h);
-    // SDL_QueryTexture(tex_hiddenSpikes, NULL, NULL, &dest_hiddenSpikes.w, &dest_hiddenSpikes.h);
 
     SDL_QueryTexture(tex_start, NULL, NULL, &dest_start.w, &dest_start.h);
     SDL_QueryTexture(tex_goal, NULL, NULL, &dest_minimapBlock.w, &dest_minimapBlock.h);
@@ -746,14 +716,14 @@ int main()
     dest_door.w = CELL;
     dest_door.h = CELL;
 
-    dest_lock.w = dest_door.w - CELL/6;
+    dest_lock.w = dest_door.w - CELL / 6;
     dest_lock.h = dest_door.h;
 
     dest_start.w = CELL;
     dest_start.h = CELL;
 
-    dest_you_win.w = CELL*3;
-    dest_you_win.h = CELL*3;
+    dest_you_win.w = CELL * 3;
+    dest_you_win.h = CELL * 3;
 
     dest_monster.w = dest_hero.w;
     dest_monster.h = dest_hero.h;
@@ -813,11 +783,12 @@ int main()
     SDL_Point mousePosition;
 
     int gameCycles = 0;
+    int cyclesSinceDeath = 0;
+    int displayDeath = false;
 
     while (!closeWindow)
     {
-        //system("clear");
-        //drawTemporalMap();
+
         gameCycles++;
         SDL_Event event;
 
@@ -835,10 +806,9 @@ int main()
 
         if (current_game_state == GAME_STATE_RUN)
         {
-            //if(gameCycles % 20 == 0){
-                SDL_RenderCopy(rend, tex_room, NULL, &dest_room);
-                drawMiniMap(SCREEN_W * miniMapScale, dest_minimapBlock, rend);
-            //}
+
+            SDL_RenderCopy(rend, tex_room, NULL, &dest_room);
+            drawMiniMap(SCREEN_W * miniMapScale, dest_minimapBlock, rend);
         }
 
         switch (current_game_state)
@@ -852,7 +822,6 @@ int main()
             closeWindow = true;
             break;
         case GAME_STATE_RUN:
-            
 
             for (int k = 0; k < 4; k++)
             {
@@ -884,16 +853,12 @@ int main()
                         dest_door.y = SCREEN_H - dest_door.h - doorOffset;
                         SDL_RenderCopy(rend, tex_doorS, NULL, &dest_door);
 
-                        // pthread_mutex_lock(&currRoomLock2);
-
                         if (tempNeighbour->occupiedByMonster == 1 && tempNeighbour->type != Wall)
                         {
                             dest_lock.x = dest_door.x;
                             dest_lock.y = dest_door.y;
                             SDL_RenderCopy(rend, tex_doorLock, NULL, &dest_lock);
                         }
-
-                        // pthread_mutex_unlock(&currRoomLock2);
 
                         break;
                     case 2:
@@ -949,20 +914,24 @@ int main()
             {
 
                 struct monster *currMon = &monsters[current_room_player->monsterInRoomID];
-
-                dest_monster.x = dest_hero.x + CELL + CELL/2;
-                dest_monster.y = dest_hero.y;
-
-
                 if (currMon->hp <= 0)
                 {
-                    dest_monster.x = dest_hero.x + CELL + CELL/2 + CELL/2;
-                    SDL_RenderCopy(rend, tex_deadSymbol, NULL, &dest_monster);
+                    displayDeath = true;
                 }
                 else
                 {
+                    dest_monster.x = dest_hero.x + CELL + CELL / 2;
+                    dest_monster.y = dest_hero.y;
+
                     SDL_RenderCopy(rend, tex_monster, NULL, &dest_monster);
                 }
+            }
+
+            if (displayDeath)
+            {
+                dest_monster.x = dest_hero.x + CELL + CELL / 2 + CELL / 4;
+                SDL_RenderCopy(rend, tex_deadSymbol, NULL, &dest_monster);
+                displayDeath = false;
             }
 
             if (current_room_player->type == Treasure && current_room_player->treasure)
@@ -1035,14 +1004,7 @@ int main()
                     case SDL_SCANCODE_UP:
                         if (isDoorOpen(current_room_id, 0))
                         {
-                            int res = safelyMoveHero(0);
-
-                            // if (res == -1)
-                            // {
-                            //     dest_lock.x = SCREEN_W / 2 - dest_lock.w / 2;
-                            //     dest_lock.y = 0;
-                            //     SDL_RenderCopy(rend, tex_doorLock, NULL, &dest_lock);
-                            // }
+                            safelyMoveHero(0);
                         }
 
                         break;
@@ -1051,7 +1013,7 @@ int main()
 
                         if (isDoorOpen(current_room_id, 3))
                         {
-                            int res = safelyMoveHero(3);
+                            safelyMoveHero(3);
                         }
 
                         break;
@@ -1059,7 +1021,7 @@ int main()
                     case SDL_SCANCODE_DOWN:
                         if (isDoorOpen(current_room_id, 1))
                         {
-                            int res = safelyMoveHero(1);
+                            safelyMoveHero(1);
                         }
 
                         break;
@@ -1067,7 +1029,7 @@ int main()
                     case SDL_SCANCODE_RIGHT:
                         if (isDoorOpen(current_room_id, 2))
                         {
-                            int res = safelyMoveHero(2);
+                            safelyMoveHero(2);
                         }
 
                         break;
@@ -1075,39 +1037,21 @@ int main()
                         openChest(player);
                         break;
                     case SDL_SCANCODE_SPACE:
-                        // printf("space pressed \n");
+
                         ;
-                        struct room *current_room = getRoomPointerByID(current_room_id);
-                        attackingLock = current_room->room_lock;
 
                         dest_slash.x = dest_hero.x - dest_slash.w / 2 + CELL * 1.5;
                         dest_slash.y = dest_hero.y + dest_slash.h / 2;
 
                         SDL_RenderCopy(rend, tex_slash, NULL, &dest_slash);
 
-                        // pthread_mutex_t roomMutex = current_room->room_lock;
-                        pthread_mutex_lock(&attackingLock);
+                        struct room *current_room = getRoomPointerByID(current_room_id);
                         int monsterID = current_room->monsterInRoomID;
 
                         if (monsterID != -1)
                         {
-                            struct monster *monster = &monsters[monsterID];
-
-                            int currState = monster->state;
-                            //printf("State %d\n", currState);
-
-                            if (currState == IDLE)
-                            {
-                                attackMonster(player, monster);
-                            }
-                            else
-                            {
-                                printf("Monster is not idle\n");
-                            }
+                            attackMonster(player, &monsters[monsterID]);
                         }
-                        
-                        pthread_mutex_unlock(&attackingLock);
-                        // SDL_DestroyTexture(tex_slash);
 
                         break;
                     default:
@@ -1120,18 +1064,19 @@ int main()
         }
 
         SDL_RenderPresent(rend);
-        
-        if(gameCycles > 60){
+
+        if (gameCycles > 60)
+        {
             gameCycles = 0;
         }
-        SDL_Delay(75);
+        SDL_Delay(50);
     }
 
     SDL_DestroyTexture(tex_hero);
     SDL_DestroyTexture(tex_heroDMG);
     SDL_DestroyTexture(tex_wall);
     SDL_DestroyTexture(tex_room);
-    //SDL_DestroyTexture(tex_door);
+
     SDL_DestroyTexture(tex_doorN);
     SDL_DestroyTexture(tex_doorS);
     SDL_DestroyTexture(tex_doorE);

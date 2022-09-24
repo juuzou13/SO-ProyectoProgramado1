@@ -1,25 +1,33 @@
-Integrantes del equipo:
----------------------------------------
-Fabricio Delgado Morales
+# Proyecto 1
+## Sistemas Operativos - Semestre 2 2022
 
-Marianna Hidalgo Sandoval
+---
 
-Abiel Porras Garro
+## Integrantes del equipo:
+---
 
-Silvia Melissa Rodríguez Fernández
+- Fabricio Delgado Morales
 
+- Marianna Hidalgo Sandoval
 
-Instalación de paquetes SDL:
----------------------------------------
-sudo apt-get install libsdl2-dev
+- Abiel Porras Garro
 
-sudo apt install libsdl2-image-dev
+- Silvia Melissa Rodríguez Fernández
 
-sudo apt install libsdl2-ttf-dev
+## Requisitos para compilar:
+
+    Instalación de paquetes SDL:
+    ---------------------------------------
+    
+    $ sudo apt-get install libsdl2-dev
+
+    $ sudo apt install libsdl2-image-dev
+
+    $ sudo apt install libsdl2-ttf-dev
 
 
 Ejecución del programa:
 ---------------------------------------
-$ make
+    $ make
 
-$ make run
+    $ make run

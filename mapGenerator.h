@@ -55,7 +55,7 @@ struct door
 
 struct room
 {
-    
+
     int id;
     int type;
     struct door doors[4];
@@ -70,7 +70,6 @@ struct room
     int monsterInRoomID;
 
     int isHeroInRoom;
-
 };
 
 struct room **game_map;
@@ -209,7 +208,7 @@ int setOccupied(int id, int state)
         int i = (id - 1) / N;
         int j = (id - 1) % N;
         game_map[i][j].occupiedByMonster = state;
-        //printf("Cuarto %d ocupado: %d-%d.\n", id, i, j);
+
         return 0;
     }
 }
@@ -246,7 +245,8 @@ int setHeroInRoom(int id, int state)
     }
 }
 
-int isHeroInRoom(int roomID){
+int isHeroInRoom(int roomID)
+{
     if (roomID > N * N || roomID < 1)
     {
         printf("No existe habitacion con dicho id, isHeroInRoom.\n");
@@ -310,14 +310,6 @@ void printArrayFrom(int *array, int index, int size)
     }
     printf("\n");
 }
-/*
-int isGoal(int id)
-{
-    int i = (id - 1) / N;
-    int j = (id - 1) % N;
-    return game_map[i][j].type == Goal;
-}
-*/
 
 int isInArray(int *array, int size, int element)
 {
@@ -411,15 +403,20 @@ void drawTemporalMap()
             {
                 spaces2 = "";
             }
-            if ((room->type == Treasure && room->treasure == 0) || (room->type == Trap && room->trap == 0)) {
+            if ((room->type == Treasure && room->treasure == 0) || (room->type == Trap && room->trap == 0))
+            {
                 printf("%s" GREEN "|" DEFAULT, spaces);
             }
-            else if (room->type == Treasure && room->treasure == 1) {
+            else if (room->type == Treasure && room->treasure == 1)
+            {
                 printf("%s" YELLOW "|" DEFAULT, spaces);
             }
-            else if (room->type == Trap && room->trap == 1) {
+            else if (room->type == Trap && room->trap == 1)
+            {
                 printf("%s" RED "|" DEFAULT, spaces);
-            } else {
+            }
+            else
+            {
                 printf("%s|", spaces);
             }
             if (room->isHeroInRoom == 1 && room->occupiedByMonster == 1)
@@ -448,7 +445,6 @@ void drawTemporalMap()
             {
                 printf(DEFAULT "%d" DEFAULT ") %s%s", room->id, openDoors, spaces2);
             }
-
 
             for (int k = 0; k < 4; k++)
             {
@@ -492,10 +488,12 @@ void connectRooms(int *roomsArray, int *directionsArray, int size)
         struct room *currentRoomPt = getRoomPointerByID(currentRoomId);
         currentRoomPt->type = getRandomRoomType();
 
-        if (currentRoomPt->type == Treasure){
-                currentRoomPt->treasure = 1;
+        if (currentRoomPt->type == Treasure)
+        {
+            currentRoomPt->treasure = 1;
         }
-        else if (currentRoomPt->type == Trap){
+        else if (currentRoomPt->type == Trap)
+        {
             currentRoomPt->trap = 1;
         }
 
@@ -526,8 +524,12 @@ void getUnvisitedeighbors(int *roomsList, int size, int *unvisitedO, int *unvisi
         for (int j = 0; j < 4; j++)
         {
             neighbor = getNeighbour(roomsList[i], j);
+            
             if (roomsList[i] != goalRoomID && neighbor != -1 && !isInArray(roomsList, size, neighbor) && !isInArray(unvisited, unvisitedSize, neighbor))
             {
+                if(roomsList[i] == goalRoomID){
+                    printf("Found goal room id: %d\n", roomsList[i]);
+                }
                 unvisited[unvisitedSize++] = neighbor;
                 unvisitedDirections[unvisitedDirectionsSize++] = oppositeTable[j];
             }
@@ -546,7 +548,7 @@ int openDoor(int roomID, int doorDirection)
 
     if (room->openDoorsLeft == 0)
     {
-        printf("Cant open any more doors in %d\n", roomID);
+
         return false;
     }
 
@@ -555,38 +557,6 @@ int openDoor(int roomID, int doorDirection)
 
     return true;
 }
-
-/*
-int closeDoor(int roomID, int doorDirection)
-{
-    struct room *room = getRoomPointerByID(roomID);
-
-    if (room->openDoorsLeft == 3)
-    {
-        printf("Cant close anymore doors in %d\n", roomID);
-        return false;
-    }
-
-    room->doors[doorDirection].state = Closed;
-
-    return true;
-}
-*/
-
-/*
-void getClosedDoorsFromRoom(int ID)
-{
-    struct room *currRoom = getRoomPointerByID(ID);
-
-    for (int i = 0; i < 4; i++)
-    {
-        if (currRoom->doors[i].state == Closed)
-        {
-            printf("Door %d is closed in %d\n", i, ID);
-        }
-    }
-}
-*/
 
 int getRandomRoomType()
 {
@@ -643,7 +613,8 @@ void createMap(int startRoomID, int total)
             }
 
             room->type = room->id == startRoomID ? Start : Wall;
-            if(room->type == Wall) {
+            if (room->type == Wall)
+            {
                 room->trap = 0;
                 room->treasure = 0;
             }
@@ -721,8 +692,6 @@ int generateMap()
     int goalRoomID;
 
     createMap(startRoomID, total);
-
-    //drawTemporalMap();
 
     int blockedIds[total];
     int blockedIdsSize = 0;
@@ -809,57 +778,18 @@ int generateMap()
     int camino[total];
     int caminoSize = 0;
 
-    printf("Abriendo puertas del laberinto...\n\n");
-
     memcpy(camino, touredIds, sizeof(touredIds));
     caminoSize = touredIdsSize;
 
-    //drawTemporalMap();
-
     connectRooms(touredIds, connections, touredIdsSize);
-
-    //drawTemporalMap();
 
     int possibleDoors[4];
     int possibleDoorsSize = 0;
 
     struct room *startRoom = getRoomPointerByID(startRoomID);
     int newStartRoomCandidate = startRoomID;
-    /*
-    // Comentar esto para que no cambie nunca el start y quede siempre en el centro
-    startRoom->type = getRandomRoomType();
-    if(startRoom->type == Trap) {
-        startRoom->trap = 1;
-    }else if(startRoom->type == Treasure) {
-        startRoom->treasure = 1;
-    }
-    startRoom->occupiedByMonster = 0;
-
-    int foundNewStart = 0;
-
-    while(!foundNewStart) {
-        newStartRoomCandidate = touredIds[rand() % touredIdsSize];
-
-        struct room *newStartRoom = getRoomPointerByID(newStartRoomCandidate);
-
-        foundNewStart = 1;
-
-        for(int i = 0; i < 4; i++) {
-            if(newStartRoom->doors[i].state == Open){
-                struct room *neigh = getRoomPointerByID(getNeighbour(newStartRoomCandidate, i));
-                if(neigh->type == Goal) {
-                    foundNewStart = 0;
-                }
-            }
-        }
-
-    }
-    //------------------------------------------------------------------------------
-    */
 
     startRoom = getRoomPointerByID(newStartRoomCandidate);
-
-    //Set as normal room
 
     startRoom->type = Start;
     startRoom->trap = 0;
@@ -867,9 +797,6 @@ int generateMap()
     startRoom->occupiedByMonster = 0;
 
     startRoomID = startRoom->id;
-
-
-    
 
     for (int i = 0; i < touredIdsSize; i++)
     {
@@ -926,8 +853,6 @@ int generateMap()
         possibleDoorsSize = 0;
     }
 
-    printf("Creando callejones sin salida...\n\n");
-
     int univisted[total];
     int unvisitedSize = 0;
 
@@ -955,8 +880,6 @@ int generateMap()
 
     int opporunities = 500;
 
-    //drawTemporalMap();
-
     while (0 < deadEnds || caminoSize < N)
     {
         int random = rand() % unvisitedSize;
@@ -983,10 +906,12 @@ int generateMap()
             camino[caminoSize++] = connectedRoomID;
 
             room->type = getRandomRoomType();
-            if (room->type == Treasure){
+            if (room->type == Treasure)
+            {
                 room->treasure = 1;
             }
-            else if (room->type == Trap){
+            else if (room->type == Trap)
+            {
                 room->trap = 1;
             }
 
@@ -1007,21 +932,6 @@ int generateMap()
             return -1;
         }
     }
-
-    //drawTemporalMap();
-
-    /*
-    printf("Camino de habitaciones hasta el final (%d):\n", caminoSize - actualDeadEnds);
-    printArray(camino, caminoSize - actualDeadEnds);
-    printf("Callejones sin salida (%d):\n", actualDeadEnds);
-    printArrayFrom(camino, caminoSize - actualDeadEnds, caminoSize);
-
-    printf("Total Rooms: %d\n", caminoSize);
-
-    printf("Start Room: %d\n", startRoomID);
-    printf("Goal Room: %d\n", goalRoomID);
-
-    */
 
     return startRoomID;
 }
