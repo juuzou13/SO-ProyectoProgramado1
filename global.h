@@ -103,20 +103,17 @@ void *updateTrap(void *h)
     int roomID = hero->location;
 
     struct room *room = getRoomPointerByID(roomID);
-    pthread_mutex_t roomLock = room->room_lock;
 
-    float waitTime = randomInt(12, 17);
+    float waitTime = randomInt(8, 15);
     waitTime /= 10;
 
     sleep(waitTime);
     room->activated_trap = 1;
 
-    pthread_mutex_lock(&roomLock);
     if (room->isHeroInRoom)
     {
         hero->hp -= 1;
     }
-    pthread_mutex_unlock(&roomLock);
 
     room->trap = 0;
     pthread_exit(0);
