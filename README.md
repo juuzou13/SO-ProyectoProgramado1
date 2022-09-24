@@ -9,7 +9,7 @@ Abiel Porras Garro
 Silvia Melissa Rodríguez Fernández
 
 
-Instalación de paquetes Ubuntu:
+Instalación de paquetes SDL:
 ---------------------------------------
 sudo apt-get install libsdl2-dev
 
