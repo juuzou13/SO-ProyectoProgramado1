@@ -583,7 +583,7 @@ void createMap(int startRoomID, int total)
 
     for (int i = 0; i < N; i++)
     {
-        game_map[i] = (struct room *)malloc(N * sizeof(struct room));
+        game_map[i] = (int *)malloc(N * sizeof(int));
         for (int j = 0; j < N; j++)
         {
             struct room *room = (struct room *)malloc(sizeof(struct room));
@@ -686,7 +686,7 @@ int generateMap()
 
     int total = N * N;
 
-    game_map = (struct room **)malloc(N * sizeof(struct room *));
+    game_map = (int **)malloc(N * sizeof(struct room *));
 
     int startRoomID = N % 2 == 0 ? total / 2 - N / 2 : total / 2 + 1;
     int goalRoomID;

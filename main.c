@@ -127,13 +127,12 @@ int openChest(struct hero *h)
         int r = rand() % 2;
         if (r == 0)
         {
+
             h->atk = h->atk + 1;
-            printf("\nHero got +1 attack\n");
         }
         else
         {
             h->hp = h->hp + 1;
-            printf("\nHero got +1 health points\n");
         }
         setRoomChestState(h->location, 0);
         return 1;
@@ -499,7 +498,8 @@ int main()
 
     int monsterCount = N / 2;
     monsters = (struct monster *)malloc(sizeof(struct monster) * monsterCount);
-    pthread_t heroThread;
+    pthread_t *heroThread = (pthread_t *)malloc(sizeof(pthread_t));
+
     pthread_t *monsterThreads;
     monsterThreads = (pthread_t *)malloc(sizeof(pthread_t) * monsterCount);
 
@@ -1111,17 +1111,6 @@ int main()
     printf("\nThanks For Playing\n");
 
     pthread_mutex_destroy(&lock);
-
-    free(monsters);
-    free(player);
-    free(monsterThreads);
-
-    for (int i = 0; i < N; i++)
-    {
-        free(game_map[i]);
-    }
-    free(game_map);
-
 
     return 0;
 }
