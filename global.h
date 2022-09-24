@@ -90,6 +90,7 @@ int attackHero(struct monster *m, struct hero *h)
     {
         changeMonsterState(m, ATTACK);
         h->hp -= m->atk;
+        printf("\nMonster %d attacked the hero for %d damage\n", m->id, m->atk);
         changeMonsterState(m, IDLE);
         monsterWaitAfterAction(9, 15);
         return true;
@@ -113,6 +114,7 @@ void *updateTrap(void *h)
     if (room->isHeroInRoom)
     {
         hero->hp -= 1;
+        printf("\nHero was hit by a trap in room %d\n", roomID);
     }
 
     room->trap = 0;
