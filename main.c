@@ -127,12 +127,16 @@ int openChest(struct hero *h)
         int r = rand() % 2;
         if (r == 0)
         {
-
             h->atk = h->atk + 1;
+            printf("\nHero got +1 attack\n");
         }
         else
         {
+            struct room * room = getRoomPointerByID(h->location);
+            pthread_mutex_lock(&room->room_lock);
             h->hp = h->hp + 1;
+            printf("\nHero got +1 health points\n");
+            pthread_mutex_unlock(&room->room_lock);
         }
         setRoomChestState(h->location, 0);
         return 1;
@@ -496,9 +500,9 @@ int main()
     setHeroInRoom(startLocation, 1);
     prevHealth = player->hp;
 
-    int monsterCount = N / 2;
+    int monsterCount = N/2;
     monsters = (struct monster *)malloc(sizeof(struct monster) * monsterCount);
-    pthread_t *heroThread = (pthread_t *)malloc(sizeof(pthread_t));
+    pthread_t heroThread;
 
     pthread_t *monsterThreads;
     monsterThreads = (pthread_t *)malloc(sizeof(pthread_t) * monsterCount);
@@ -898,14 +902,14 @@ int main()
                 dest_trap.y = CELL * 1.75;
                 dest_trap.h = SCREEN_H * 0.6;
                 dest_trap.w = SCREEN_W * 0.6;
-                if (current_room_player->trap == 1)
+                if (current_room_player->activated_trap == 1)
                 {
-                    activateTrap = 1;
+                    activateTrap = 0;
                     SDL_RenderCopy(rend, tex_hiddenSpikes, NULL, &dest_trap);
                 }
                 else
                 {
-                    activateTrap = 0;
+                    activateTrap = 1;
                     SDL_RenderCopy(rend, tex_spikes, NULL, &dest_trap);
                 }
             }
@@ -945,7 +949,7 @@ int main()
             if (player->hp < prevHealth)
             {
                 SDL_RenderCopy(rend, tex_heroDMG, NULL, &dest_hero);
-                if (activateTrap == 1)
+                if (activateTrap == 0 && current_room_player->type == Trap)
                 {
                     SDL_RenderCopy(rend, tex_spikes, NULL, &dest_trap);
                 }
@@ -1111,6 +1115,17 @@ int main()
     printf("\nThanks For Playing\n");
 
     pthread_mutex_destroy(&lock);
+
+    free(monsters);
+    free(player);
+    free(monsterThreads);
+
+    for (int i = 0; i < N; i++)
+    {
+        free(game_map[i]);
+    }
+    free(game_map);
+
 
     return 0;
 }

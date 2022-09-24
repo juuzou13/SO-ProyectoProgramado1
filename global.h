@@ -89,7 +89,11 @@ int attackHero(struct monster *m, struct hero *h)
     if (h->location == m->location)
     {
         changeMonsterState(m, ATTACK);
+        struct room * room = getRoomPointerByID(h->location);
+        pthread_mutex_lock(&room->room_lock);
         h->hp -= m->atk;
+        pthread_mutex_unlock(&room->room_lock);
+        printf("\n-1 hp! by monster %d\n", m->id);
         changeMonsterState(m, IDLE);
         monsterWaitAfterAction(9, 15);
         return true;
@@ -102,20 +106,27 @@ void *updateTrap(void *h)
     struct hero *hero = (struct hero *)h;
     int roomID = hero->location;
 
-    struct room *room = getRoomPointerByID(roomID);
-
     float waitTime = randomInt(8, 15);
     waitTime /= 10;
 
-    sleep(waitTime);
-    room->activated_trap = 1;
 
+    struct room *room = getRoomPointerByID(roomID);
+    int damage = 1;
+
+    room->activated_trap = 1;
+    sleep(waitTime);
+
+    pthread_mutex_lock(&room->room_lock);
     if (room->isHeroInRoom)
     {
-        hero->hp -= 1;
-    }
+        hero->hp -= damage;
+        damage = 0;
+        
+        room->trap = 0;
 
-    room->trap = 0;
+        printf("\n-1 hp by trap in room %d!\n", room->id);
+    }
+    pthread_mutex_unlock(&room->room_lock);
     pthread_exit(0);
 }
 
@@ -127,7 +138,7 @@ int heroMove(struct hero *h, int location)
         return false;
     }
     h->location = location;
-    if (getRoomPointerByID(h->location)->trap == 1)
+    if (getRoomPointerByID(h->location)->activated_trap == 0 && getRoomPointerByID(h->location)->trap==1)
     {
         pthread_t thread;
         pthread_create(&thread, NULL, updateTrap, h);
